@@ -119,12 +119,4 @@ All colors MUST be HSL.
   }
   .story-link:hover::after { transform: scaleX(1); transform-origin: bottom left; }
 
-  .btn-ripple { position: relative; overflow: hidden; }
-  .btn-ripple::after {
-    content: "";
-    position: absolute; inset: 0;
-    background: radial-gradient(circle at var(--ripple-x,50%) var(--ripple-y,50%), hsl(var(--foreground)/0.15), transparent 45%);
-    opacity: 0; transition: opacity 400ms ease;
-  }
-  .btn-ripple:active::after { opacity: 1; }
 }
