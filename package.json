@@ -4,15 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "cross-env PORT=8080 vite --host 0.0.0.0 --port 8080",
-    "start": "npm run dev",
-    "build": "tsc -b && vite build",
-    "build:dev": "vite build --mode development",
-    "lint": "eslint .",
-    "preview": "cross-env PORT=4173 vite preview --host 0.0.0.0 --port $PORT",
-    "serve": "cross-env PORT=10000 vite preview --host 0.0.0.0 --port $PORT",
-    "start:dev": "npm run dev",
-    "postbuild": "echo 'Build completed successfully'"
+  "dev": "vite --host 0.0.0.0 --port 10000",
+  "build": "vite build",
+  "build:dev": "vite build --mode development",
+  "lint": "eslint .",
+  "preview": "vite preview --host 0.0.0.0 --port 10000",
+  "serve": "vite preview --host 0.0.0.0 --port 10000",
+  "start": "npm run dev"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
