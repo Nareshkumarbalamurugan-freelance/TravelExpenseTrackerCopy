@@ -1,11 +1,16 @@
 import SEO from "@/components/SEO";
 import StatsCard from "@/components/StatsCard";
 import { useTrip } from "@/context/TripContext";
+import { useAuth } from "@/context/AuthContext";
+import { calculateExpenseAmount } from "@/lib/expenseCalculator";
 import staticMap from "@/assets/static-map.jpg";
 
 const DailySummary = () => {
   const { totalDistanceToday, visits } = useTrip();
-  const totalAmount = Math.round(totalDistanceToday * 20);
+  const { user } = useAuth();
+  // Calculate amount based on user's position
+  const userPosition = user?.position || 'Sales Executive';
+  const totalAmount = calculateExpenseAmount(totalDistanceToday, userPosition);
 
   return (
     <>

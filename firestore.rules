@@ -1,0 +1,101 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    // User profiles - users can read/write their own profile
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Active trip sessions - users can manage their own sessions
+    match /activeSessions/{sessionId} {
+      allow read, write, delete: if isAuthenticated() && 
+                                     resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+    }
+
+    // Completed trips - users can manage their own trips
+    match /trips/{tripId} {
+      allow read, write, delete: if isAuthenticated() && 
+                                    resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+    }
+
+    // Trip locations/tracking - users can manage their own location data
+    match /tripLocations/{locationId} {
+      allow read, write, delete: if isAuthenticated() && 
+                                    resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+    }
+
+    // Dealer visits - users can manage their own visits
+    match /dealerVisits/{visitId} {
+      allow read, write, delete: if isAuthenticated() && 
+                                    resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+    }
+
+    // Expense records - users can manage their own expenses
+    match /expenses/{expenseId} {
+      allow read, write, delete: if isAuthenticated() && 
+                                    resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+    }
+
+    // Daily summaries - users can manage their own summaries
+    match /dailySummaries/{summaryId} {
+      allow read, write, delete: if isAuthenticated() && 
+                                    resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+    }
+
+    // Trip subcollections
+    match /trips/{tripId}/locations/{locationId} {
+      allow read, write, delete: if isAuthenticated() && 
+                                    get(/databases/$(database)/documents/trips/$(tripId)).data.userId == request.auth.uid;
+    }
+
+    match /trips/{tripId}/visits/{visitId} {
+      allow read, write, delete: if isAuthenticated() && 
+                                    get(/databases/$(database)/documents/trips/$(tripId)).data.userId == request.auth.uid;
+    }
+
+    // Position rates - all authenticated users can read, admins can write
+    match /positionRates/{rateId} {
+      allow read: if isAuthenticated();
+      allow write, create, delete: if isAuthenticated(); // Simplified for now
+    }
+
+    // System configuration - all authenticated users can read
+    match /systemConfig/{configId} {
+      allow read: if isAuthenticated();
+      allow write, create, delete: if isAuthenticated(); // Simplified for now
+    }
+
+    // Admin collections - simplified access
+    match /adminStats/{statId} {
+      allow read, write, create, delete: if isAuthenticated();
+    }
+
+    // Default allow for authenticated users (temporary simplification)
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}

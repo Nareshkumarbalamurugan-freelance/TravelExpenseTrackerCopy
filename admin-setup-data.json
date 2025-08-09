@@ -1,0 +1,66 @@
+{
+  "users": {
+    "bUekUMejRsO8EngZxcjLQ79DPPC2": {
+      "role": "admin",
+      "isAdmin": true,
+      "email": "nareshkumarbalamurugan@gmail.com",
+      "position": "Regional Manager",
+      "canManagePositions": true,
+      "canManageUsers": true,
+      "canViewReports": true,
+      "adminSetupAt": "2025-08-09T12:45:00.000Z",
+      "updatedAt": "2025-08-09T12:45:00.000Z"
+    }
+  },
+  "positionRates": {
+    "sales_executive": {
+      "id": "sales_executive",
+      "name": "Sales Executive",
+      "ratePerKm": 12,
+      "dailyAllowance": 500,
+      "isActive": true,
+      "createdAt": "2025-08-09T12:45:00.000Z",
+      "updatedAt": "2025-08-09T12:45:00.000Z"
+    },
+    "senior_executive": {
+      "id": "senior_executive", 
+      "name": "Senior Executive",
+      "ratePerKm": 15,
+      "dailyAllowance": 750,
+      "isActive": true,
+      "createdAt": "2025-08-09T12:45:00.000Z",
+      "updatedAt": "2025-08-09T12:45:00.000Z"
+    },
+    "manager": {
+      "id": "manager",
+      "name": "Manager", 
+      "ratePerKm": 18,
+      "dailyAllowance": 1000,
+      "isActive": true,
+      "createdAt": "2025-08-09T12:45:00.000Z",
+      "updatedAt": "2025-08-09T12:45:00.000Z"
+    },
+    "regional_manager": {
+      "id": "regional_manager",
+      "name": "Regional Manager",
+      "ratePerKm": 22,
+      "dailyAllowance": 1500,
+      "isActive": true,
+      "createdAt": "2025-08-09T12:45:00.000Z",
+      "updatedAt": "2025-08-09T12:45:00.000Z"
+    }
+  },
+  "systemConfig": {
+    "main": {
+      "id": "main",
+      "companyName": "Noveltech Feeds",
+      "maxDailyDistance": 500,
+      "maxDealerVisits": 20,
+      "trackingInterval": 30,
+      "minLocationAccuracy": 100,
+      "isMaintenanceMode": false,
+      "updatedAt": "2025-08-09T12:45:00.000Z",
+      "updatedBy": "firebase-cli"
+    }
+  }
+}

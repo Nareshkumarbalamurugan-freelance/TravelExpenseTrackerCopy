@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { User as FirebaseUser } from "firebase/auth";
+import { onAuthStateChange, signIn, signUp, logOut, getUserData } from "../lib/auth";
 
 interface User {
+  uid: string;
   name: string;
   email: string;
   position: string;
@@ -9,37 +12,85 @@ interface User {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (email: string) => void;
-  logout: () => void;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<{ error: string | null }>;
+  register: (email: string, password: string, name: string, position: string) => Promise<{ error: string | null }>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const raw = localStorage.getItem("auth_user");
-    if (raw) setUser(JSON.parse(raw));
+    const unsubscribe = onAuthStateChange(async (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        try {
+          // Get user data from Firestore including position
+          const { userData, error } = await getUserData(firebaseUser.uid);
+          
+          if (userData && !error) {
+            const userInfo: User = {
+              uid: firebaseUser.uid,
+              name: userData.name || firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
+              email: firebaseUser.email || "",
+              position: userData.position || "Sales Executive",
+            };
+            setUser(userInfo);
+          } else {
+            // Fallback if Firestore data not found
+            const userInfo: User = {
+              uid: firebaseUser.uid,
+              name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
+              email: firebaseUser.email || "",
+              position: "Sales Executive",
+            };
+            setUser(userInfo);
+          }
+        } catch (error) {
+          console.error('Error loading user data:', error);
+          // Fallback user data
+          const userInfo: User = {
+            uid: firebaseUser.uid,
+            name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
+            email: firebaseUser.email || "",
+            position: "Sales Executive",
+          };
+          setUser(userInfo);
+        }
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const login = (email: string) => {
-    const name = email.split("@")[0].replace(/\./g, " ");
-    const newUser: User = {
-      name: name ? name.charAt(0).toUpperCase() + name.slice(1) : "Field Rep",
-      email,
-      position: "Sales Executive",
-    };
-    setUser(newUser);
-    localStorage.setItem("auth_user", JSON.stringify(newUser));
+  const login = async (email: string, password: string) => {
+    const { error } = await signIn(email, password);
+    return { error };
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("auth_user");
+  const register = async (email: string, password: string, name: string, position: string) => {
+    const { error } = await signUp(email, password, name, position);
+    return { error };
   };
 
-  const value = useMemo(() => ({ isAuthenticated: !!user, user, login, logout }), [user]);
+  const logout = async () => {
+    await logOut();
+  };
+
+  const value = useMemo(() => ({ 
+    isAuthenticated: !!user, 
+    user, 
+    loading,
+    login, 
+    register,
+    logout 
+  }), [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
