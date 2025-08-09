@@ -1,0 +1,27 @@
+# Render.com deployment configuration
+# This file is used by Render to configure the deployment
+
+# Build Command: ./render-build.sh
+# Start Command: npm run serve
+
+# Environment Variables (Set these in Render dashboard):
+# NODE_ENV=production
+# PORT=10000
+
+# Static Site Settings:
+# Build Command: npm run build
+# Publish Directory: dist
+# Node Version: 18
+
+services:
+  - type: web
+    name: travel-expense-tracker
+    env: node
+    buildCommand: npm run build
+    startCommand: npm run serve
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    staticPublishPath: ./dist
