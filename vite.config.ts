@@ -29,6 +29,23 @@ export default defineConfig(({ mode }) => ({
       }
     }
   },
+  preview: {
+    host: "0.0.0.0",
+    port: process.env.PORT ? parseInt(process.env.PORT) : 4173
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+          ui: ['lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-tabs']
+        }
+      }
+    }
+  },
   plugins: [
     react(),
     mode === 'development' &&
