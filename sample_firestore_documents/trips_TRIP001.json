@@ -1,0 +1,12 @@
+{
+  "userId": "EMP001",
+  "tripId": "TRIP001",
+  "destination": "Chennai",
+  "startDate": "2025-08-01T08:00:00.000Z",
+  "endDate": "2025-08-01T18:00:00.000Z",
+  "totalDistance": 120.5,
+  "totalExpense": 1500,
+  "status": "completed",
+  "createdAt": "2025-08-01T08:00:00.000Z",
+  "updatedAt": "2025-08-01T18:00:00.000Z"
+}

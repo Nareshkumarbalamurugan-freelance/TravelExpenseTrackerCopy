@@ -6,6 +6,8 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Eye, EyeOff, Shield, AlertCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { auth } from '../lib/firebase';
 
 const AdminLogin: React.FC = () => {
   const [credentials, setCredentials] = useState({
@@ -17,34 +19,39 @@ const AdminLogin: React.FC = () => {
   const [isLogging, setIsLogging] = useState(false);
   const navigate = useNavigate();
 
-  // Hardcoded admin credentials
-  const ADMIN_CREDENTIALS = {
-    username: 'admin',
-    password: 'admin@poultrymitra'
-  };
+
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLogging(true);
     setError('');
 
-    // Simulate login delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    if (
-      credentials.username === ADMIN_CREDENTIALS.username &&
-      credentials.password === ADMIN_CREDENTIALS.password
-    ) {
-      // Store admin session
-      sessionStorage.setItem('adminAuthenticated', 'true');
-      sessionStorage.setItem('adminLoginTime', new Date().toISOString());
-      
-      // Navigate to admin dashboard
-      navigate('/admin');
-    } else {
-      setError('Invalid username or password');
+    try {
+      // Use email as username for admin login
+      const { error } = await login(credentials.username, credentials.password);
+      if (error) {
+        setError('Invalid username or password');
+        setIsLogging(false);
+        return;
+      }
+      // Check for admin custom claim
+      const user = auth.currentUser;
+      let isAdmin = false;
+      if (user) {
+        const token = await user.getIdTokenResult();
+        isAdmin = token.claims.admin === true;
+      }
+      if (isAdmin) {
+        sessionStorage.setItem('adminAuthenticated', 'true');
+        sessionStorage.setItem('adminLoginTime', new Date().toISOString());
+        navigate('/admin');
+      } else {
+        setError('You do not have admin access.');
+      }
+    } catch (err) {
+      setError('Login failed.');
     }
-    
     setIsLogging(false);
   };
 

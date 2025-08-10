@@ -1,0 +1,13 @@
+{
+  "uid": "EMP001",
+  "email": "employee1@company.com",
+  "name": "Employee One",
+  "role": "employee",
+  "position": "Sales Executive",
+  "isAdmin": false,
+  "canManageUsers": false,
+  "canManagePositions": false,
+  "canViewReports": false,
+  "createdAt": "2025-08-10T00:00:00.000Z",
+  "updatedAt": "2025-08-10T00:00:00.000Z"
+}

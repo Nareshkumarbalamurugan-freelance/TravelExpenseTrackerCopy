@@ -34,6 +34,11 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if ((!email && !employeeId) || !password) {
+      toast({ title: "Missing fields", description: "Please enter Employee ID or Email and Password.", variant: "destructive" });
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     let loginEmail = email;
     if (!loginEmail && employeeId) {
@@ -157,7 +162,7 @@ const Login = () => {
                       type="submit"
                       size="xl"
                       className="btn-ripple"
-                      disabled={isLoading}
+                      disabled={isLoading || (!email && !employeeId) || !password}
                     >
                       {isLoading ? "Signing in..." : "Sign In"}
                     </Button>

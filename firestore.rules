@@ -1,4 +1,8 @@
-rules_version = '2';
+
+    // Admin check
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -76,21 +80,21 @@ service cloud.firestore {
                                     get(/databases/$(database)/documents/trips/$(tripId)).data.userId == request.auth.uid;
     }
 
-    // Position rates - all authenticated users can read, admins can write
+
+    // Position rates - all authenticated users can read, only admins can write
     match /positionRates/{rateId} {
       allow read: if isAuthenticated();
-      allow write, create, delete: if isAuthenticated(); // Simplified for now
+      allow write, create, delete: if isAdmin();
     }
 
-    // System configuration - all authenticated users can read
+    // System configuration - only admins can read/write
     match /systemConfig/{configId} {
-      allow read: if isAuthenticated();
-      allow write, create, delete: if isAuthenticated(); // Simplified for now
+      allow read, write, create, delete: if isAdmin();
     }
 
-    // Admin collections - simplified access
+    // Admin collections - only admins can access
     match /adminStats/{statId} {
-      allow read, write, create, delete: if isAuthenticated();
+      allow read, write, create, delete: if isAdmin();
     }
 
     // Default allow for authenticated users (temporary simplification)

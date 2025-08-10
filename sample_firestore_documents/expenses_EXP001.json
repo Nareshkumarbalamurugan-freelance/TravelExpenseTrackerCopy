@@ -1,0 +1,10 @@
+{
+  "userId": "EMP001",
+  "expenseId": "EXP001",
+  "tripId": "TRIP001",
+  "amount": 200,
+  "category": "Food",
+  "description": "Lunch",
+  "date": "2025-08-01T13:00:00.000Z",
+  "createdAt": "2025-08-01T13:00:00.000Z"
+}
