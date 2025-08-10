@@ -1,3 +1,127 @@
+// --- Expense Claim Approval Workflow ---
+export type ClaimStatus = 'Pending' | 'Approved' | 'Rejected';
+export type ApprovalLevel = 'L1' | 'L2' | 'L3';
+
+export interface Claim {
+  id?: string;
+  userId: string;
+  employeeId: string;
+  name: string;
+  grade: string;
+  policy: string;
+  type: string;
+  amount: number;
+  date: Date;
+  description?: string;
+  receipt?: string;
+  remarks?: string;
+  status: ClaimStatus;
+  approvalLevel: ApprovalLevel;
+  managerChain: string[]; // [L1, L2, L3 userIds]
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+// Create a new claim
+export const createClaim = async (claim: Omit<Claim, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'approvalLevel'>) => {
+  try {
+    const docRef = await addDoc(collection(db, 'claims'), {
+      ...claim,
+      status: 'Pending',
+      approvalLevel: 'L1',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return { id: docRef.id, error: null };
+  } catch (error: any) {
+    return { id: null, error: error.message };
+  }
+};
+
+// Approve a claim (move to next level or mark as Approved)
+export const approveClaim = async (claimId: string) => {
+  try {
+    const claimRef = doc(db, 'claims', claimId);
+    const claimSnap = await getDoc(claimRef);
+    if (!claimSnap.exists()) return { error: 'Claim not found' };
+    const claim = claimSnap.data() as Claim;
+    let nextLevel: ApprovalLevel | null = null;
+    if (claim.approvalLevel === 'L1') nextLevel = 'L2';
+    else if (claim.approvalLevel === 'L2') nextLevel = 'L3';
+    else nextLevel = null;
+    if (nextLevel) {
+      await updateDoc(claimRef, {
+        approvalLevel: nextLevel,
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      await updateDoc(claimRef, {
+        status: 'Approved',
+        updatedAt: serverTimestamp(),
+      });
+    }
+    return { error: null };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+};
+
+// Reject a claim (with remarks)
+export const rejectClaim = async (claimId: string, remarks: string) => {
+  try {
+    const claimRef = doc(db, 'claims', claimId);
+    await updateDoc(claimRef, {
+      status: 'Rejected',
+      remarks,
+      updatedAt: serverTimestamp(),
+    });
+    return { error: null };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+};
+
+// Escalate claim if manager resigned (auto-move to next level)
+export const escalateClaim = async (claimId: string) => {
+  try {
+    const claimRef = doc(db, 'claims', claimId);
+    const claimSnap = await getDoc(claimRef);
+    if (!claimSnap.exists()) return { error: 'Claim not found' };
+    const claim = claimSnap.data() as Claim;
+    let nextLevel: ApprovalLevel | null = null;
+    if (claim.approvalLevel === 'L1') nextLevel = 'L2';
+    else if (claim.approvalLevel === 'L2') nextLevel = 'L3';
+    else nextLevel = null;
+    if (nextLevel) {
+      await updateDoc(claimRef, {
+        approvalLevel: nextLevel,
+        updatedAt: serverTimestamp(),
+      });
+      return { error: null };
+    } else {
+      return { error: 'Already at final level' };
+    }
+  } catch (error: any) {
+    return { error: error.message };
+  }
+};
+
+// Get pending claims for a given approval level and manager
+export const getPendingClaimsForManager = async (level: ApprovalLevel, managerId: string) => {
+  try {
+    const q = query(
+      collection(db, 'claims'),
+      where('approvalLevel', '==', level),
+      where('managerChain.' + (level === 'L1' ? 0 : level === 'L2' ? 1 : 2), '==', managerId),
+      where('status', '==', 'Pending')
+    );
+    const querySnapshot = await getDocs(q);
+    const claims = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Claim[];
+    return { claims, error: null };
+  } catch (error: any) {
+    return { claims: [], error: error.message };
+  }
+};
 import {
   collection,
   doc,

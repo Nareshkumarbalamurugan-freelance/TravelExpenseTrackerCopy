@@ -47,15 +47,90 @@ import {
   getTripAnalytics,
   exportTripData
 } from '@/lib/adminService';
+
+import { useAuth } from '@/context/AuthContext';
 import SEO from '@/components/SEO';
 
 const ComprehensiveAdminDashboard = () => {
+  const { user } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [positionRates, setPositionRates] = useState<EmployeePosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  // Approval workflow state
+  const [pendingClaims, setPendingClaims] = useState<any[]>([]); // Replace any with your claim type
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [approvalRemark, setApprovalRemark] = useState<{ [claimId: string]: string }>({});
+
+  // Load real pending claims for the logged-in admin/manager
+  useEffect(() => {
+    const fetchClaims = async () => {
+      if (activeTab !== 'approvals' || !user) return;
+      setApprovalLoading(true);
+      try {
+        const { getPendingClaimsForManager } = await import('../lib/database');
+        // Assume user.approvalLevel and user.uid are available
+        // Use position as fallback for approval level
+        let level: string = 'L1';
+        if (user.position) {
+          if (user.position.toLowerCase().includes('hr')) level = 'L2';
+          else if (user.position.toLowerCase().includes('manager')) level = 'L1';
+          else if (user.position.toLowerCase().includes('admin')) level = 'L3';
+        }
+        const managerId = user.uid;
+  const { claims, error } = await getPendingClaimsForManager(level as 'L1' | 'L2' | 'L3', managerId);
+        if (error) {
+          toast({ title: 'Error loading claims', description: error, variant: 'destructive' });
+          setPendingClaims([]);
+        } else {
+          setPendingClaims(claims);
+        }
+      } catch (err: any) {
+        toast({ title: 'Error loading claims', description: err.message, variant: 'destructive' });
+        setPendingClaims([]);
+      } finally {
+        setApprovalLoading(false);
+      }
+    };
+    fetchClaims();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, user]);
+
+  const handleApprove = async (claimId: string) => {
+    try {
+      const { approveClaim } = await import('../lib/database');
+      const { error } = await approveClaim(claimId);
+      if (error) {
+        toast({ title: 'Approval failed', description: error, variant: 'destructive' });
+      } else {
+        setPendingClaims(claims => claims.filter(c => c.id !== claimId));
+        toast({ title: 'Claim Approved', description: `Claim ${claimId} approved.` });
+      }
+    } catch (err: any) {
+      toast({ title: 'Approval failed', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleReject = async (claimId: string) => {
+    if (!approvalRemark[claimId]) {
+      toast({ title: 'Remarks required', description: 'Please enter remarks for rejection.', variant: 'destructive' });
+      return;
+    }
+    try {
+      const { rejectClaim } = await import('../lib/database');
+      const { error } = await rejectClaim(claimId, approvalRemark[claimId]);
+      if (error) {
+        toast({ title: 'Rejection failed', description: error, variant: 'destructive' });
+      } else {
+        setPendingClaims(claims => claims.filter(c => c.id !== claimId));
+        toast({ title: 'Claim Rejected', description: `Claim ${claimId} rejected.` });
+      }
+    } catch (err: any) {
+      toast({ title: 'Rejection failed', description: err.message, variant: 'destructive' });
+    }
+  };
 
   // Form states
   const [newPosition, setNewPosition] = useState({
@@ -298,13 +373,75 @@ const ComprehensiveAdminDashboard = () => {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="trips">Trips</TabsTrigger>
+          <TabsTrigger value="approvals">Approvals</TabsTrigger>
           <TabsTrigger value="positions">Positions</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
+        {/* Approvals Tab */}
+        <TabsContent value="approvals" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pending Expense Claims</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {approvalLoading ? (
+                <div>Loading...</div>
+              ) : pendingClaims.length === 0 ? (
+                <div className="text-gray-500">No pending claims.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border text-sm">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="p-2 border">Claim ID</th>
+                        <th className="p-2 border">Employee</th>
+                        <th className="p-2 border">Type</th>
+                        <th className="p-2 border">Amount</th>
+                        <th className="p-2 border">Date</th>
+                        <th className="p-2 border">Level</th>
+                        <th className="p-2 border">Description</th>
+                        <th className="p-2 border">Receipt</th>
+                        <th className="p-2 border">Remarks (for Rejection)</th>
+                        <th className="p-2 border">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingClaims.map(claim => (
+                        <tr key={claim.id}>
+                          <td className="p-2 border">{claim.id}</td>
+                          <td className="p-2 border">{claim.employee}</td>
+                          <td className="p-2 border">{claim.type}</td>
+                          <td className="p-2 border">₹{claim.amount}</td>
+                          <td className="p-2 border">{claim.date}</td>
+                          <td className="p-2 border">{claim.level}</td>
+                          <td className="p-2 border">{claim.description}</td>
+                          <td className="p-2 border">{claim.receipt ? 'Yes' : 'No'}</td>
+                          <td className="p-2 border">
+                            <input
+                              type="text"
+                              className="border rounded px-2 py-1 w-40"
+                              placeholder="Remarks (required for rejection)"
+                              value={approvalRemark[claim.id] || ''}
+                              onChange={e => setApprovalRemark(r => ({ ...r, [claim.id]: e.target.value }))}
+                            />
+                          </td>
+                          <td className="p-2 border flex flex-col gap-2">
+                            <button className="bg-green-600 text-white px-3 py-1 rounded" onClick={() => handleApprove(claim.id)}>Approve</button>
+                            <button className="bg-red-600 text-white px-3 py-1 rounded" onClick={() => handleReject(claim.id)}>Reject</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">

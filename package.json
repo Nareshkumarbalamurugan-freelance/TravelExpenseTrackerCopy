@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-  "dev": "vite --host 0.0.0.0 --port 10000",
-  "build": "vite build",
-  "lint": "eslint .",
-  "preview": "vite preview --host 0.0.0.0 --port 10000",
-  "start": "vite preview --host 0.0.0.0 --port 10000"
+    "dev": "vite --host 0.0.0.0 --port 10000",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview --host 0.0.0.0 --port 10000",
+    "start": "vite preview --host 0.0.0.0 --port 10000"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -66,6 +66,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
+    "@playwright/test": "^1.54.2",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22.16.5",
     "@types/react": "^18.3.23",

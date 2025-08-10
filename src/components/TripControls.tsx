@@ -282,12 +282,21 @@ const TripControls: React.FC = () => {
   };
 
   const formatDuration = (milliseconds: number): string => {
-    const seconds = Math.floor(milliseconds / 1000);
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
+    if (!Number.isFinite(milliseconds) || milliseconds <= 0) {
+      return '00:00:00';
+    }
     
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    try {
+      const seconds = Math.floor(milliseconds / 1000);
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const remainingSeconds = seconds % 60;
+      
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    } catch (error) {
+      console.error('Error formatting duration:', error);
+      return '00:00:00';
+    }
   };
 
   if (isLoading) {
@@ -323,15 +332,15 @@ const TripControls: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <Timer className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">{tripDuration}</p>
+                    <p className="text-sm font-medium">{tripDuration && tripDuration !== 'NaN:NaN:NaN' ? tripDuration : '--:--:--'}</p>
                     <p className="text-xs text-muted-foreground">Duration</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">{activeSession.dealerVisits.length}</p>
+                    <p className="text-sm font-medium">{Number.isFinite(activeSession.dealerVisits?.length) ? activeSession.dealerVisits.length : '--'}</p>
                     <p className="text-xs text-muted-foreground">Dealer Visits</p>
                   </div>
                 </div>
@@ -339,7 +348,7 @@ const TripControls: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <Route className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">{currentDistance.toFixed(2)} km</p>
+                    <p className="text-sm font-medium">{Number.isFinite(currentDistance) ? currentDistance.toFixed(2) : '--'} km</p>
                     <p className="text-xs text-muted-foreground">Distance</p>
                   </div>
                 </div>
@@ -347,7 +356,7 @@ const TripControls: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">₹{currentExpense.toFixed(2)}</p>
+                    <p className="text-sm font-medium">₹{Number.isFinite(currentExpense) ? currentExpense.toFixed(2) : '--'}</p>
                     <p className="text-xs text-muted-foreground">Est. Expense</p>
                   </div>
                 </div>

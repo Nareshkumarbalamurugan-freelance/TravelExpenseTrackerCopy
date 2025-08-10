@@ -1,22 +1,8 @@
 {
   "indexes": [
     {
-      "collectionGroup": "trips",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startTime",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "activeSessions",
-      "queryScope": "COLLECTION",
+      "collectionGroup": "tripSessions",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         {
           "fieldPath": "userId",

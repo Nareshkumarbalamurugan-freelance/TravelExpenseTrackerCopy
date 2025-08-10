@@ -193,7 +193,7 @@ const AdminDashboard = () => {
                   <Users className="h-5 w-5 text-blue-600" />
                   <div>
                     <p className="text-sm text-muted-foreground">Total Users</p>
-                    <p className="text-2xl font-bold">{adminStats.totalUsers}</p>
+                    <p className="text-2xl font-bold">{Number.isFinite(adminStats.totalUsers) ? adminStats.totalUsers : '--'}</p>
                   </div>
                 </div>
               </CardContent>
@@ -205,7 +205,7 @@ const AdminDashboard = () => {
                   <MapPin className="h-5 w-5 text-green-600" />
                   <div>
                     <p className="text-sm text-muted-foreground">Active Trips</p>
-                    <p className="text-2xl font-bold">{adminStats.activeTrips}</p>
+                    <p className="text-2xl font-bold">{Number.isFinite(adminStats.activeTrips) ? adminStats.activeTrips : '--'}</p>
                   </div>
                 </div>
               </CardContent>
@@ -217,7 +217,7 @@ const AdminDashboard = () => {
                   <BarChart3 className="h-5 w-5 text-purple-600" />
                   <div>
                     <p className="text-sm text-muted-foreground">Trips Today</p>
-                    <p className="text-2xl font-bold">{adminStats.totalTripsToday}</p>
+                    <p className="text-2xl font-bold">{Number.isFinite(adminStats.totalTripsToday) ? adminStats.totalTripsToday : '--'}</p>
                   </div>
                 </div>
               </CardContent>
@@ -229,7 +229,7 @@ const AdminDashboard = () => {
                   <Route className="h-5 w-5 text-orange-600" />
                   <div>
                     <p className="text-sm text-muted-foreground">Distance Today</p>
-                    <p className="text-2xl font-bold">{adminStats.totalDistanceToday.toFixed(1)}km</p>
+                    <p className="text-2xl font-bold">{Number.isFinite(adminStats.totalDistanceToday) ? adminStats.totalDistanceToday.toFixed(1) + 'km' : '--'}</p>
                   </div>
                 </div>
               </CardContent>
@@ -241,7 +241,7 @@ const AdminDashboard = () => {
                   <DollarSign className="h-5 w-5 text-green-600" />
                   <div>
                     <p className="text-sm text-muted-foreground">Expense Today</p>
-                    <p className="text-2xl font-bold">₹{adminStats.totalExpenseToday.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{Number.isFinite(adminStats.totalExpenseToday) ? `₹${adminStats.totalExpenseToday.toLocaleString()}` : '--'}</p>
                   </div>
                 </div>
               </CardContent>
@@ -253,7 +253,7 @@ const AdminDashboard = () => {
                   <MapPin className="h-5 w-5 text-blue-600" />
                   <div>
                     <p className="text-sm text-muted-foreground">Avg Accuracy</p>
-                    <p className="text-2xl font-bold">{adminStats.averageAccuracy.toFixed(0)}m</p>
+                    <p className="text-2xl font-bold">{Number.isFinite(adminStats.averageAccuracy) ? adminStats.averageAccuracy.toFixed(0) + 'm' : '--'}</p>
                   </div>
                 </div>
               </CardContent>

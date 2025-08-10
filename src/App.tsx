@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import PrivateAppLayout from "./layouts/PrivateAppLayout";
 import Dashboard from "./pages/Dashboard";
-import EnhancedEmployeeDashboard from "./pages/EnhancedEmployeeDashboard";
+import NewEmployeeDashboard from "./pages/NewEmployeeDashboard";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import DailySummary from "./pages/DailySummary";
@@ -54,7 +54,7 @@ const App = () => (
                     </AdminGuard>
                   } />
                   <Route path="/" element={<PrivateAppLayout />}>
-                    <Route index element={<EnhancedEmployeeDashboard />} />
+                    <Route index element={<NewEmployeeDashboard />} />
                     <Route path="dashboard-legacy" element={<Dashboard />} />
                     <Route path="summary" element={<DailySummary />} />
                     <Route path="history" element={<TripHistory />} />
