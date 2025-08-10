@@ -1,3 +1,27 @@
+/**
+ * Fetch all position rates
+ */
+export const getAllPositionRates = async (): Promise<(EmployeePosition & { id: string })[]> => {
+  try {
+    const snapshot = await getDocs(collection(db, 'positionRates'));
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        position: data.position || data.name || '',
+        perKmRate: data.perKmRate ?? data.ratePerKm ?? 0,
+        dailyAllowance: data.dailyAllowance ?? 0,
+        maxDailyExpense: data.maxDailyExpense ?? 0,
+        isActive: data.isActive !== false,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching position rates:', error);
+    return [];
+  }
+};
 import {
   collection,
   doc,
@@ -245,14 +269,32 @@ export const getAdminStats = async (): Promise<AdminStats> => {
  */
 export const getSystemSettings = async (): Promise<SystemSettings> => {
   try {
-    const settingsDoc = await getDoc(doc(db, 'admin', 'settings'));
-    
-    if (settingsDoc.exists()) {
-      const data = settingsDoc.data();
+    // Try /admin/settings first
+    let settingsDoc = await getDoc(doc(db, 'admin', 'settings'));
+    let data = settingsDoc.exists() ? settingsDoc.data() : null;
+
+    // If not found, try /systemConfig/main
+    if (!data) {
+      const sysDoc = await getDoc(doc(db, 'systemConfig', 'main'));
+      if (sysDoc.exists()) {
+        data = sysDoc.data();
+        // Map/normalize fields if needed
+        data.companyName = data.companyName || '';
+        data.maxDailyDistance = data.maxDailyDistance ?? 500;
+        data.maxMonthlyExpense = data.maxMonthlyExpense ?? 50000;
+        data.requirePhotoForVisits = data.requirePhotoForVisits ?? true;
+        data.autoApprovalLimit = data.autoApprovalLimit ?? 1000;
+        data.defaultPositions = data.defaultPositions || [];
+        data.adminEmails = data.adminEmails || [];
+        data.updatedAt = data.updatedAt;
+      }
+    }
+
+    if (data) {
       return {
         id: settingsDoc.id,
         ...data,
-        updatedAt: data.updatedAt?.toDate() || new Date()
+        updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : data.updatedAt || new Date()
       } as SystemSettings;
     }
 

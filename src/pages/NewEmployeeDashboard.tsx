@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { Activity, DollarSign, Route, Award, TrendingUp, Menu, User, PlusCircle, History, FilePlus, FileText } from 'lucide-react';
 import TripControls from '@/components/TripControls';
-import { useTrip } from '@/context/TripContext';
+import { getCompletedTrips, TripSession } from '@/lib/tripSession';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,7 +29,18 @@ const summaryStats = [
 
 const NewEmployeeDashboard = () => {
   const { user } = useAuth();
-  const { history } = useTrip();
+  const [history, setHistory] = useState<{
+    date: string;
+    distanceKm: number;
+    amount: number;
+  }[]>([]);
+  const [summaryStats, setSummaryStats] = useState([
+    { label: "Today's Trips", value: 0, icon: <Activity className="h-5 w-5 text-blue-500" /> },
+    { label: "Monthly Distance", value: '0 km', icon: <Route className="h-5 w-5 text-green-500" /> },
+    { label: "Monthly Earnings", value: '₹0', icon: <DollarSign className="h-5 w-5 text-yellow-500" /> },
+    { label: "Active Streak", value: 0, icon: <Award className="h-5 w-5 text-purple-500" /> },
+  ]);
+  const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [claimModalOpen, setClaimModalOpen] = useState(false);
@@ -41,11 +52,84 @@ const NewEmployeeDashboard = () => {
   const [claimStatus, setClaimStatus] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load user's claims (status)
+
+  // Load real trip history and summary stats from Firestore
   useEffect(() => {
-    // TODO: Replace with real backend call for user's claims
-    // setClaimStatus([]);
-  }, []);
+    const fetchTrips = async () => {
+      if (!user) return;
+      setLoading(true);
+      try {
+        const { trips, error } = await getCompletedTrips(user.uid, 30);
+        if (error) {
+          setLoading(false);
+          return;
+        }
+        // Map trips to history rows
+        // Helper to get JS Date from Firestore Timestamp or Date
+        const getDate = (d: any): Date => {
+          if (!d) return new Date(0);
+          if (d instanceof Date) return d;
+          if (typeof d.toDate === 'function') return d.toDate();
+          return new Date(d);
+        };
+        const tripHistory = trips.map((trip) => ({
+          date: getDate(trip.startTime).toLocaleDateString(),
+          distanceKm: trip.totalDistance || 0,
+          amount: trip.totalExpense || 0,
+        }));
+        setHistory(tripHistory);
+
+        // Calculate summary stats
+        const today = new Date();
+        const isSameDay = (d: Date) => d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+        const isSameMonth = (d: Date) => d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+        let todaysTrips = 0, monthlyDistance = 0, monthlyEarnings = 0;
+        let streak = 0;
+        let lastDate: string | null = null;
+        // Sort trips by date descending
+        const sortedTrips = [...trips].sort((a, b) => {
+          const da = getDate(a.startTime);
+          const db = getDate(b.startTime);
+          return db.getTime() - da.getTime();
+        });
+        for (const trip of sortedTrips) {
+          const d = getDate(trip.startTime);
+          if (isSameDay(d)) todaysTrips++;
+          if (isSameMonth(d)) {
+            monthlyDistance += trip.totalDistance || 0;
+            monthlyEarnings += trip.totalExpense || 0;
+          }
+        }
+        // Calculate active streak (consecutive days with trips)
+        for (const trip of sortedTrips) {
+          const d = getDate(trip.startTime);
+          const dateStr = d.toDateString();
+          if (lastDate === null) {
+            lastDate = dateStr;
+            streak = 1;
+          } else {
+            const prev = new Date(lastDate);
+            const diff = (prev.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+            if (diff === 1) {
+              streak++;
+              lastDate = dateStr;
+            } else if (diff > 1) {
+              break;
+            }
+          }
+        }
+        setSummaryStats([
+          { label: "Today's Trips", value: todaysTrips, icon: <Activity className="h-5 w-5 text-blue-500" /> },
+          { label: "Monthly Distance", value: `${monthlyDistance.toFixed(1)} km`, icon: <Route className="h-5 w-5 text-green-500" /> },
+          { label: "Monthly Earnings", value: `₹${monthlyEarnings}`, icon: <DollarSign className="h-5 w-5 text-yellow-500" /> },
+          { label: "Active Streak", value: streak, icon: <Award className="h-5 w-5 text-purple-500" /> },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTrips();
+  }, [user]);
 
   const handleClaimSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +166,12 @@ const NewEmployeeDashboard = () => {
     } else {
       alert('Failed to submit claim: ' + error);
     }
+  };
+
+  // Send claim to manager (stub)
+  const handleSendToManager = async (claim: any) => {
+    // TODO: Implement actual email/notification logic here
+    alert(`Claim sent to manager for claim ID: ${claim.id || claim.type}`);
   };
 
   return (
@@ -173,7 +263,9 @@ const NewEmployeeDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {history.length === 0 ? (
+                  {loading ? (
+                    <div className="text-gray-500 text-sm">Loading...</div>
+                  ) : history.length === 0 ? (
                     <div className="text-gray-500 text-sm">No trips found.</div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -261,6 +353,8 @@ const NewEmployeeDashboard = () => {
                             <th className="text-right p-2 font-medium">Amount</th>
                             <th className="text-left p-2 font-medium">Status</th>
                             <th className="text-left p-2 font-medium">Date</th>
+                            <th className="text-left p-2 font-medium">Receipt</th>
+                            <th className="text-left p-2 font-medium">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -270,6 +364,22 @@ const NewEmployeeDashboard = () => {
                               <td className="p-2 text-right">₹ {c.amount}</td>
                               <td className="p-2">{c.status}</td>
                               <td className="p-2">{c.date}</td>
+                              <td className="p-2">
+                                {c.receipt ? (
+                                  <a href={c.receipt} download target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Download</a>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </td>
+                              <td className="p-2">
+                                <button
+                                  className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+                                  onClick={() => handleSendToManager(c)}
+                                  disabled={c.status !== 'Pending'}
+                                >
+                                  Send to Manager
+                                </button>
+                              </td>
                             </tr>
                           ))}
                         </tbody>

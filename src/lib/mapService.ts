@@ -92,46 +92,44 @@ export const getCurrentLocation = (): Promise<{ location: Location | null; error
  * Search for places using MapMyIndia Autosuggest API
  */
 export const searchPlaces = async (query: string): Promise<{ suggestions: PlaceSuggestion[]; error: string | null }> => {
-  // Use real API if forced or in production, otherwise use mock data in development
-  if (forceRealAPI || !isDevelopment) {
-    try {
-      const response = await fetch(
-        `${BASE_URLS.AUTOSUGGEST}?query=${encodeURIComponent(query)}&region=IND&key=${MAPPLS_API_KEY}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
+  // Always use real API in production. Only use mock data in development mode and not forced real API.
+  try {
+    const response = await fetch(
+      `${BASE_URLS.AUTOSUGGEST}?query=${encodeURIComponent(query)}&region=IND&key=${MAPPLS_API_KEY}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
         }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
       }
+    );
 
-      const data = await response.json();
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.suggestedLocations && Array.isArray(data.suggestedLocations)) {
+      const suggestions: PlaceSuggestion[] = data.suggestedLocations.map((place: any) => ({
+        placeName: place.placeName || place.placeAddress,
+        placeAddress: place.placeAddress,
+        latitude: place.latitude ? parseFloat(place.latitude) : undefined,
+        longitude: place.longitude ? parseFloat(place.longitude) : undefined,
+        eLoc: place.eLoc
+      }));
       
-      if (data.suggestedLocations && Array.isArray(data.suggestedLocations)) {
-        const suggestions: PlaceSuggestion[] = data.suggestedLocations.map((place: any) => ({
-          placeName: place.placeName || place.placeAddress,
-          placeAddress: place.placeAddress,
-          latitude: place.latitude ? parseFloat(place.latitude) : undefined,
-          longitude: place.longitude ? parseFloat(place.longitude) : undefined,
-          eLoc: place.eLoc
-        }));
-        
-        return { suggestions, error: null };
-      }
+      return { suggestions, error: null };
+    }
 
-      return { suggestions: [], error: null };
-    } catch (error: any) {
-      console.warn('MapMyIndia API error, falling back to mock data:', error.message);
+    return { suggestions: [], error: null };
+  } catch (error: any) {
+    if (isDevelopment && !forceRealAPI) {
+      // Only use mock data in development mode and not forced real API
+      console.log('Development mode: Using mock search results for:', query);
       return generateMockSearchResults(query);
     }
-  } else {
-    // Development mode with mock data (unless forced to use real API)
-    console.log('Development mode: Using mock search results for:', query);
-    return generateMockSearchResults(query);
+    return { suggestions: [], error: error.message || 'Failed to fetch suggestions' };
   }
 };
 
@@ -204,42 +202,40 @@ const generateMockSearchResults = (query: string): { suggestions: PlaceSuggestio
  * Get address from coordinates (Reverse Geocoding)
  */
 export const getAddressFromCoordinates = async (latitude: number, longitude: number): Promise<{ address: string | null; error: string | null }> => {
-  // Use real API if forced or in production, otherwise use mock data in development
-  if (forceRealAPI || !isDevelopment) {
-    try {
-      const response = await fetch(
-        `${BASE_URLS.REVERSE_GEOCODING}/${MAPPLS_API_KEY}/rev_geocode?lat=${latitude}&lng=${longitude}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
+  // Always use real API in production. Only use mock data in development mode and not forced real API.
+  try {
+    const response = await fetch(
+      `${BASE_URLS.REVERSE_GEOCODING}/${MAPPLS_API_KEY}/rev_geocode?lat=${latitude}&lng=${longitude}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
         }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
       }
+    );
 
-      const data = await response.json();
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.results && data.results.length > 0) {
+      const result = data.results[0];
+      const address = result.formatted_address || 
+                     `${result.locality || ''}, ${result.city || ''}, ${result.state || ''}`.replace(/^,\s*|,\s*$/g, '');
       
-      if (data.results && data.results.length > 0) {
-        const result = data.results[0];
-        const address = result.formatted_address || 
-                       `${result.locality || ''}, ${result.city || ''}, ${result.state || ''}`.replace(/^,\s*|,\s*$/g, '');
-        
-        return { address, error: null };
-      }
+      return { address, error: null };
+    }
 
-      return { address: null, error: "No address found for these coordinates" };
-    } catch (error: any) {
-      console.warn('MapMyIndia reverse geocoding error, falling back to mock data:', error.message);
+    return { address: null, error: "No address found for these coordinates" };
+  } catch (error: any) {
+    if (isDevelopment && !forceRealAPI) {
+      // Only use mock data in development mode and not forced real API
+      console.log('Development mode: Using mock address for coordinates:', latitude, longitude);
       return generateMockAddress(latitude, longitude);
     }
-  } else {
-    // Development mode with mock data (unless forced to use real API)
-    console.log('Development mode: Using mock address for coordinates:', latitude, longitude);
-    return generateMockAddress(latitude, longitude);
+    return { address: null, error: error.message || 'Failed to fetch address' };
   }
 };
 

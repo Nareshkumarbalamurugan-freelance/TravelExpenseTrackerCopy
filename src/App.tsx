@@ -8,6 +8,8 @@ import PrivateAppLayout from "./layouts/PrivateAppLayout";
 import Dashboard from "./pages/Dashboard";
 import NewEmployeeDashboard from "./pages/NewEmployeeDashboard";
 import NotFound from "./pages/NotFound";
+import TestPage from "./pages/TestPage";
+import TestSystemPage from "./pages/TestSystemPage";
 import Login from "./pages/Login";
 import DailySummary from "./pages/DailySummary";
 import TripHistory from "./pages/TripHistory";
@@ -61,6 +63,8 @@ const App = () => (
                     <Route path="profile" element={<Profile />} />
                     <Route path="map-demo" element={<MapDemo />} />
                   </Route>
+                  <Route path="test" element={<TestPage />} />
+                  <Route path="test-system" element={<TestSystemPage />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
