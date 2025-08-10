@@ -15,6 +15,20 @@
       ]
     },
     {
+      "collectionGroup": "tripSessions",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "dealerVisits",
       "queryScope": "COLLECTION",
       "fields": [

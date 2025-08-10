@@ -419,6 +419,23 @@ export const getTripAnalytics = async (startDate: Date, endDate: Date) => {
   }
 };
 
+
+/**
+ * Update trip status
+ */
+export const updateTripStatus = async (tripId: string, status: 'approved' | 'rejected'): Promise<void> => {
+  try {
+    const tripRef = doc(db, 'tripSessions', tripId);
+    await updateDoc(tripRef, {
+      status: status,
+      updatedAt: Timestamp.now()
+    });
+  } catch (error) {
+    console.error('Error updating trip status:', error);
+    throw error;
+  }
+};
+
 /**
  * Export trip data for a specific period
  */

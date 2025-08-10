@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Menu, User, TrendingUp, Route, DollarSign, Users, Settings, Shield, BarChart3, MapPin, Plus, Edit, Trash2, RefreshCw, Save, Download, Clock, Activity, Eye, UserCheck, UserX } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,27 +11,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
-import { 
-  Users, 
-  Settings, 
-  BarChart3, 
-  MapPin, 
-  DollarSign, 
-  Route,
-  Shield,
-  Plus,
-  Edit,
-  Trash2,
-  RefreshCw,
-  Save,
-  Download,
-  TrendingUp,
-  Clock,
-  Activity,
-  Eye,
-  UserCheck,
-  UserX
-} from 'lucide-react';
 import {
   AdminUser,
   AdminStats,
@@ -51,6 +31,15 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import SEO from '@/components/SEO';
 
+const navItems = [
+  { key: 'overview', label: 'Overview', icon: <TrendingUp className="h-5 w-5" /> },
+  { key: 'employees', label: 'Employees', icon: <Users className="h-5 w-5" /> },
+  { key: 'trips', label: 'Trips', icon: <Route className="h-5 w-5" /> },
+  { key: 'approvals', label: 'Approvals', icon: <Shield className="h-5 w-5" /> },
+  { key: 'positions', label: 'Positions', icon: <User className="h-5 w-5" /> },
+  { key: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" /> },
+];
+
 const ComprehensiveAdminDashboard = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -58,6 +47,7 @@ const ComprehensiveAdminDashboard = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [positionRates, setPositionRates] = useState<EmployeePosition[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   // Approval workflow state
   const [pendingClaims, setPendingClaims] = useState<any[]>([]); // Replace any with your claim type
@@ -285,103 +275,122 @@ const ComprehensiveAdminDashboard = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="min-h-screen flex bg-gray-50">
       <SEO 
         title="Admin Dashboard - Travel Expense Tracker"
         description="Comprehensive admin panel for managing employees, trips, and system settings"
       />
-
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600">Manage employees, trips, and system settings</p>
+      {/* Sidebar */}
+      <aside className={`z-30 fixed md:static left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-lg md:shadow-none flex flex-col transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <div className="flex items-center gap-2 px-6 py-6 border-b">
+          <Menu className="h-6 w-6 text-blue-600" />
+          <span className="font-bold text-xl text-blue-700">Admin Panel</span>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => handleExportData('csv')} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-          <Button onClick={() => handleExportData('json')} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export JSON
-          </Button>
-          <Button onClick={loadDashboardData} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
-      </div>
+        <nav className="flex-1 flex flex-col gap-2 px-4 py-6">
+          {navItems.map(item => (
+            <button
+              key={item.key}
+              className={`flex items-center gap-3 px-4 py-2 rounded-lg text-base font-medium transition-colors ${activeTab === item.key ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
+              onClick={() => setActiveTab(item.key)}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalEmployees || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.activeEmployees || 0} active
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Trips Today</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalTripsToday || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.totalTripsThisMonth || 0} this month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Distance This Month</CardTitle>
-            <Route className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {(stats?.totalDistanceThisMonth || 0).toFixed(0)} km
+      {/* Main content */}
+      <main className="flex-1 flex flex-col min-h-screen ml-0 md:ml-64">
+        <div className="max-w-7xl mx-auto w-full px-4 py-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Welcome, {user?.name || user?.email?.split('@')[0]}!</h1>
+              <p className="text-gray-600 text-base">{user?.position || 'Admin'}</p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Across all trips
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expenses This Month</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ₹{(stats?.totalExpensesThisMonth || 0).toLocaleString()}
+            <div className="flex gap-2">
+              <Button onClick={() => handleExportData('csv')} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+              <Button onClick={() => handleExportData('json')} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export JSON
+              </Button>
+              <Button onClick={loadDashboardData} variant="outline">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Total reimbursements
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
 
-      {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="employees">Employees</TabsTrigger>
-          <TabsTrigger value="trips">Trips</TabsTrigger>
-          <TabsTrigger value="approvals">Approvals</TabsTrigger>
-          <TabsTrigger value="positions">Positions</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
-        {/* Approvals Tab */}
+          {/* Overview Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.totalEmployees || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats?.activeEmployees || 0} active
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Trips Today</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.totalTripsToday || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats?.totalTripsThisMonth || 0} this month
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Distance This Month</CardTitle>
+                <Route className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {(stats?.totalDistanceThisMonth || 0).toFixed(0)} km
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Across all trips
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Expenses This Month</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  ₹{(stats?.totalExpensesThisMonth || 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Total reimbursements
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <TabsList className="grid w-full grid-cols-6">
+              {navItems.map(item => (
+                <TabsTrigger key={item.key} value={item.key}>{item.label}</TabsTrigger>
+              ))}
+            </TabsList>
+            {/* Approvals Tab */}
         <TabsContent value="approvals" className="space-y-6">
           <Card>
             <CardHeader>
@@ -839,8 +848,11 @@ const ComprehensiveAdminDashboard = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
       </Tabs>
     </div>
+  </main>
+</div>
   );
 };
 

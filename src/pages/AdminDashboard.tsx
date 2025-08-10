@@ -1,523 +1,114 @@
+
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { useAdmin, SystemConfig } from '@/context/AdminContext';
-import { toast } from '@/hooks/use-toast';
-import { 
-  Users, 
-  Settings, 
-  BarChart3, 
-  MapPin, 
-  DollarSign, 
-  Route,
-  Shield,
-  Plus,
-  Edit,
-  Trash2,
-  RefreshCw,
-  Save
-} from 'lucide-react';
+import { Menu, Users, TrendingUp, Route, DollarSign, Settings, Shield, X } from 'lucide-react';
 import SEO from '@/components/SEO';
+import Overview from '@/components/admin/Overview';
+import Employees from '@/components/admin/Employees';
+import Trips from '@/components/admin/Trips';
+import Approvals from '@/components/admin/Approvals';
+import AdminSettings from '@/components/admin/Settings';
+import { Button } from '@/components/ui/button';
+
+const navItems = [
+  { key: 'overview', label: 'Overview', icon: <TrendingUp className="h-5 w-5" /> },
+  { key: 'employees', label: 'Employees', icon: <Users className="h-5 w-5" /> },
+  { key: 'trips', label: 'Trips', icon: <Route className="h-5 w-5" /> },
+  { key: 'approvals', label: 'Approvals', icon: <Shield className="h-5 w-5" /> },
+  { key: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" /> },
+];
 
 const AdminDashboard = () => {
-  const { 
-    isAdmin, 
-    positionRates, 
-    systemConfig, 
-    adminStats, 
-    loading,
-    addPositionRate,
-    updatePositionRate,
-    deletePositionRate,
-    updateSystemConfig,
-    refreshStats,
-    getAllUsers,
-    updateUserPosition,
-    toggleUserStatus
-  } = useAdmin();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
-  const [users, setUsers] = useState<any[]>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [newPosition, setNewPosition] = useState({
-    name: '',
-    ratePerKm: 0,
-    dailyAllowance: 0,
-    isActive: true
-  });
-  const [editingConfig, setEditingConfig] = useState(false);
-  const [configForm, setConfigForm] = useState<Partial<SystemConfig>>({});
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return <Overview />;
+      case 'employees':
+        return <Employees />;
+      case 'trips':
+        return <Trips />;
+      case 'approvals':
+        return <Approvals />;
+      case 'settings':
+        return <AdminSettings />;
+      default:
+        return <Overview />;
+    }
+  };
 
   useEffect(() => {
-    if (isAdmin) {
-      loadUsers();
-    }
-  }, [isAdmin]);
-
-  useEffect(() => {
-    if (systemConfig) {
-      setConfigForm(systemConfig);
-    }
-  }, [systemConfig]);
-
-  const loadUsers = async () => {
-    setIsLoadingUsers(true);
-    try {
-      const allUsers = await getAllUsers();
-      setUsers(allUsers);
-    } catch (error) {
-      toast({
-        title: "Error loading users",
-        description: "Could not fetch user data",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  };
-
-  const handleAddPosition = async () => {
-    if (!newPosition.name || newPosition.ratePerKm <= 0) {
-      toast({
-        title: "Invalid data",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const success = await addPositionRate(newPosition);
-    if (success) {
-      toast({
-        title: "Position added",
-        description: `${newPosition.name} has been added successfully`,
-      });
-      setNewPosition({ name: '', ratePerKm: 0, dailyAllowance: 0, isActive: true });
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
     } else {
-      toast({
-        title: "Error",
-        description: "Could not add position",
-        variant: "destructive"
-      });
+      document.body.style.overflow = 'auto';
     }
-  };
-
-  const handleUpdateConfig = async () => {
-    const success = await updateSystemConfig(configForm);
-    if (success) {
-      toast({
-        title: "Configuration updated",
-        description: "System settings have been saved",
-      });
-      setEditingConfig(false);
-    } else {
-      toast({
-        title: "Error",
-        description: "Could not update configuration",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleTogglePosition = async (id: string, isActive: boolean) => {
-    const success = await updatePositionRate(id, { isActive });
-    if (success) {
-      toast({
-        title: isActive ? "Position activated" : "Position deactivated",
-        description: "Position status updated successfully",
-      });
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading admin dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <>
-        <SEO title="Access Denied" description="Admin access required" />
-        <div className="flex items-center justify-center min-h-screen">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <Shield className="h-16 w-16 mx-auto text-red-500 mb-4" />
-              <CardTitle className="text-red-600">Access Denied</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center">
-              <p className="text-muted-foreground mb-4">
-                You don't have administrator privileges to access this page.
-              </p>
-              <Button onClick={() => window.history.back()} variant="outline">
-                Go Back
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </>
-    );
-  }
+  }, [sidebarOpen]);
 
   return (
-    <>
-      <SEO title="Admin Dashboard" description="System administration and configuration" />
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Manage system configuration and users</p>
-          </div>
-          <Button onClick={refreshStats} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh Data
+    <div className="min-h-screen flex bg-gray-50 relative">
+      <SEO 
+        title="Admin Dashboard"
+        description="Admin panel for managing employees, trips, and system settings"
+      />
+      
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        ></div>
+      )}
+
+      {/* Sidebar */}
+      <aside className={`z-40 fixed md:static left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-lg md:shadow-none flex flex-col transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <div className="flex items-center justify-between px-4 py-5 border-b">
+          <span className="font-bold text-xl text-blue-700">Admin Panel</span>
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSidebarOpen(false)}>
+            <X className="h-6 w-6" />
           </Button>
         </div>
+        <nav className="flex-1 flex flex-col gap-1 px-3 py-4">
+          {navItems.map(item => (
+            <button
+              key={item.key}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === item.key ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
+              onClick={() => {
+                setActiveTab(item.key);
+                setSidebarOpen(false); // Close sidebar on mobile after selection
+              }}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
 
-        {/* Statistics Overview */}
-        {adminStats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <Users className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Users</p>
-                    <p className="text-2xl font-bold">{Number.isFinite(adminStats.totalUsers) ? adminStats.totalUsers : '--'}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <MapPin className="h-5 w-5 text-green-600" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Active Trips</p>
-                    <p className="text-2xl font-bold">{Number.isFinite(adminStats.activeTrips) ? adminStats.activeTrips : '--'}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <BarChart3 className="h-5 w-5 text-purple-600" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Trips Today</p>
-                    <p className="text-2xl font-bold">{Number.isFinite(adminStats.totalTripsToday) ? adminStats.totalTripsToday : '--'}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <Route className="h-5 w-5 text-orange-600" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Distance Today</p>
-                    <p className="text-2xl font-bold">{Number.isFinite(adminStats.totalDistanceToday) ? adminStats.totalDistanceToday.toFixed(1) + 'km' : '--'}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <DollarSign className="h-5 w-5 text-green-600" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Expense Today</p>
-                    <p className="text-2xl font-bold">{Number.isFinite(adminStats.totalExpenseToday) ? `₹${adminStats.totalExpenseToday.toLocaleString()}` : '--'}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <MapPin className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Avg Accuracy</p>
-                    <p className="text-2xl font-bold">{Number.isFinite(adminStats.averageAccuracy) ? adminStats.averageAccuracy.toFixed(0) + 'm' : '--'}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
+        {/* Mobile Top Bar */}
+        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 sticky top-0 z-20">
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+            <Menu className="h-6 w-6 text-blue-600" />
+          </Button>
+          <span className="font-bold text-lg text-blue-700 capitalize">{activeTab}</span>
+        </header>
+        
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto w-full">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 capitalize">{activeTab}</h1>
+                <p className="text-gray-600 text-base">Manage your system from here.</p>
+              </div>
+            </div>
+            {renderContent()}
           </div>
-        )}
-
-        {/* Main Admin Tabs */}
-        <Tabs defaultValue="positions" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="positions">Position Rates</TabsTrigger>
-            <TabsTrigger value="users">User Management</TabsTrigger>
-            <TabsTrigger value="system">System Config</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
-
-          {/* Position Rates Management */}
-          <TabsContent value="positions" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <DollarSign className="h-5 w-5" />
-                  <span>Position Rates Management</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Add New Position */}
-                <div className="border rounded-lg p-4 bg-muted/50">
-                  <h4 className="font-medium mb-3">Add New Position</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <Label htmlFor="positionName">Position Name</Label>
-                      <Input
-                        id="positionName"
-                        value={newPosition.name}
-                        onChange={(e) => setNewPosition(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="e.g., Sales Executive"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="ratePerKm">Rate per KM (₹)</Label>
-                      <Input
-                        id="ratePerKm"
-                        type="number"
-                        value={newPosition.ratePerKm}
-                        onChange={(e) => setNewPosition(prev => ({ ...prev, ratePerKm: Number(e.target.value) }))}
-                        placeholder="12"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="dailyAllowance">Daily Allowance (₹)</Label>
-                      <Input
-                        id="dailyAllowance"
-                        type="number"
-                        value={newPosition.dailyAllowance}
-                        onChange={(e) => setNewPosition(prev => ({ ...prev, dailyAllowance: Number(e.target.value) }))}
-                        placeholder="500"
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <Button onClick={handleAddPosition} className="w-full">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Position
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Existing Positions */}
-                <div className="space-y-2">
-                  <h4 className="font-medium">Current Position Rates</h4>
-                  {positionRates.map((position) => (
-                    <div key={position.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div>
-                          <p className="font-medium">{position.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            ₹{position.ratePerKm}/km + ₹{position.dailyAllowance} daily
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant={position.isActive ? "default" : "secondary"}>
-                          {position.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                        <Switch
-                          checked={position.isActive}
-                          onCheckedChange={(checked) => handleTogglePosition(position.id, checked)}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* User Management */}
-          <TabsContent value="users" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Users className="h-5 w-5" />
-                    <span>User Management</span>
-                  </div>
-                  <Button onClick={loadUsers} variant="outline" size="sm" disabled={isLoadingUsers}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingUsers ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {users.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{user.name || user.email}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {user.position || 'No position assigned'} • {user.email}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant={user.isActive !== false ? "default" : "secondary"}>
-                          {user.isActive !== false ? "Active" : "Inactive"}
-                        </Badge>
-                        <select
-                          value={user.position || ''}
-                          onChange={(e) => updateUserPosition(user.id, e.target.value)}
-                          className="text-sm border rounded px-2 py-1"
-                        >
-                          <option value="">Select Position</option>
-                          {positionRates.filter(p => p.isActive).map(position => (
-                            <option key={position.id} value={position.name}>
-                              {position.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* System Configuration */}
-          <TabsContent value="system" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Settings className="h-5 w-5" />
-                    <span>System Configuration</span>
-                  </div>
-                  <div className="flex space-x-2">
-                    {editingConfig ? (
-                      <>
-                        <Button onClick={() => setEditingConfig(false)} variant="outline" size="sm">
-                          Cancel
-                        </Button>
-                        <Button onClick={handleUpdateConfig} size="sm">
-                          <Save className="h-4 w-4 mr-2" />
-                          Save
-                        </Button>
-                      </>
-                    ) : (
-                      <Button onClick={() => setEditingConfig(true)} variant="outline" size="sm">
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </Button>
-                    )}
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {systemConfig && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="companyName">Company Name</Label>
-                      <Input
-                        id="companyName"
-                        value={configForm.companyName || ''}
-                        onChange={(e) => setConfigForm(prev => ({ ...prev, companyName: e.target.value }))}
-                        disabled={!editingConfig}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="maxDistance">Max Daily Distance (km)</Label>
-                      <Input
-                        id="maxDistance"
-                        type="number"
-                        value={configForm.maxDailyDistance || 0}
-                        onChange={(e) => setConfigForm(prev => ({ ...prev, maxDailyDistance: Number(e.target.value) }))}
-                        disabled={!editingConfig}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="maxVisits">Max Dealer Visits</Label>
-                      <Input
-                        id="maxVisits"
-                        type="number"
-                        value={configForm.maxDealerVisits || 0}
-                        onChange={(e) => setConfigForm(prev => ({ ...prev, maxDealerVisits: Number(e.target.value) }))}
-                        disabled={!editingConfig}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="trackingInterval">GPS Tracking Interval (seconds)</Label>
-                      <Input
-                        id="trackingInterval"
-                        type="number"
-                        value={configForm.trackingInterval || 30}
-                        onChange={(e) => setConfigForm(prev => ({ ...prev, trackingInterval: Number(e.target.value) }))}
-                        disabled={!editingConfig}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="minAccuracy">Min Location Accuracy (meters)</Label>
-                      <Input
-                        id="minAccuracy"
-                        type="number"
-                        value={configForm.minLocationAccuracy || 100}
-                        onChange={(e) => setConfigForm(prev => ({ ...prev, minLocationAccuracy: Number(e.target.value) }))}
-                        disabled={!editingConfig}
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="maintenanceMode"
-                        checked={configForm.isMaintenanceMode || false}
-                        onCheckedChange={(checked) => setConfigForm(prev => ({ ...prev, isMaintenanceMode: checked }))}
-                        disabled={!editingConfig}
-                      />
-                      <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Analytics */}
-          <TabsContent value="analytics" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart3 className="h-5 w-5" />
-                  <span>System Analytics</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <BarChart3 className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">
-                    Advanced analytics and reporting features will be available in the next update.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        </main>
       </div>
-    </>
+    </div>
   );
 };
 

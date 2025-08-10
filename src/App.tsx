@@ -45,7 +45,7 @@ const App = () => (
                   <Route path="/admin-login" element={<AdminLogin />} />
                   <Route path="/admin" element={
                     <AdminGuard>
-                      <ComprehensiveAdminDashboard />
+                      <AdminDashboard />
                     </AdminGuard>
                   } />
                   <Route path="/admin-legacy" element={
