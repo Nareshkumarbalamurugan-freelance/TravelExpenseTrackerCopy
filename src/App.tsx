@@ -1,3 +1,4 @@
+import ClaimApprovals from "./pages/ClaimApprovals";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,6 +24,9 @@ import { AdminSetupPage } from "./pages/AdminSetup";
 import { AuthProvider } from "./context/AuthContext";
 import { TripProvider } from "./context/TripContext";
 import { AdminProvider } from "./context/AdminContext";
+import Trips from "./pages/Trips";
+import Claims from "./pages/Claims";
+import NewClaim from "./pages/NewClaim";
 
 const queryClient = new QueryClient();
 
@@ -57,7 +61,12 @@ const App = () => (
                   } />
                   <Route path="/" element={<PrivateAppLayout />}>
                     <Route index element={<NewEmployeeDashboard />} />
+                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="trips" element={<Trips />} />
+                    <Route path="claims" element={<Claims />} />
+                    <Route path="new-claim" element={<NewClaim />} />
                     <Route path="dashboard-legacy" element={<Dashboard />} />
+                    <Route path="claim-approvals" element={<ClaimApprovals />} />
                     <Route path="summary" element={<DailySummary />} />
                     <Route path="history" element={<TripHistory />} />
                     <Route path="profile" element={<Profile />} />

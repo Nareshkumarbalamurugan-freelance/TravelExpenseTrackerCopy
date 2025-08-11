@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -10,13 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useEffect, useRef } from 'react';
 import { createClaim } from '@/lib/database';
+import { uploadClaimReceipt } from '@/lib/adminService';
 import SEO from '@/components/SEO';
 
 const navItems = [
-  { key: 'dashboard', label: 'Dashboard', icon: <TrendingUp className="h-5 w-5" /> },
-  { key: 'trips', label: 'Trips', icon: <Route className="h-5 w-5" /> },
-  { key: 'claims', label: 'Claims', icon: <DollarSign className="h-5 w-5" /> },
-  { key: 'profile', label: 'Profile', icon: <User className="h-5 w-5" /> },
+  { key: 'dashboard', label: 'Dashboard', icon: <TrendingUp className="h-5 w-5" />, path: '/dashboard' },
+  { key: 'trips', label: 'Trips', icon: <Route className="h-5 w-5" />, path: '/trips' },
+  { key: 'claims', label: 'Claims', icon: <DollarSign className="h-5 w-5" />, path: '/claims' },
+  { key: 'profile', label: 'Profile', icon: <User className="h-5 w-5" />, path: '/profile' },
 ];
 
 const summaryStats = [
@@ -42,6 +44,7 @@ const NewEmployeeDashboard = () => {
   ]);
   const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState('dashboard');
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [claimModalOpen, setClaimModalOpen] = useState(false);
   const [claimType, setClaimType] = useState('Travel');
@@ -134,37 +137,41 @@ const NewEmployeeDashboard = () => {
   const handleClaimSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setClaimLoading(true);
-    // TODO: Upload receipt to storage and get URL
     let receiptUrl = '';
-    if (claimReceipt) {
-      // Simulate upload
-      receiptUrl = URL.createObjectURL(claimReceipt);
-    }
-    const { id, error } = await createClaim({
-      userId: user?.uid,
-      employeeId: user?.uid || '',
-      name: user?.name || '',
-      grade: user?.position || '',
-      policy: 'Standard',
-      type: claimType,
-      amount: Number(claimAmount),
-      date: new Date(),
-      description: claimDesc,
-      receipt: receiptUrl,
-      remarks: '',
-      managerChain: [],
-    });
-    setClaimLoading(false);
-    if (!error) {
-      setClaimModalOpen(false);
-      setClaimType('Travel');
-      setClaimAmount('');
-      setClaimDesc('');
-      setClaimReceipt(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      // TODO: Refresh claim status list
-    } else {
-      alert('Failed to submit claim: ' + error);
+    try {
+      if (claimReceipt) {
+        // Upload to Firebase Storage and get URL
+        receiptUrl = await uploadClaimReceipt(user?.uid + '-' + Date.now(), claimReceipt);
+      }
+      const { id, error } = await createClaim({
+        userId: user?.uid,
+        employeeId: user?.uid || '',
+        name: user?.name || '',
+        grade: user?.position || '',
+        policy: 'Standard',
+        type: claimType,
+        amount: Number(claimAmount),
+        date: new Date(),
+        description: claimDesc,
+        receipt: receiptUrl,
+        remarks: '',
+        managerChain: [],
+      });
+      setClaimLoading(false);
+      if (!error) {
+        setClaimModalOpen(false);
+        setClaimType('Travel');
+        setClaimAmount('');
+        setClaimDesc('');
+        setClaimReceipt(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        // TODO: Refresh claim status list
+      } else {
+        alert('Failed to submit claim: ' + error);
+      }
+    } catch (err: any) {
+      setClaimLoading(false);
+      alert('Failed to submit claim: ' + (err?.message || 'Unknown error'));
     }
   };
 
@@ -188,7 +195,11 @@ const NewEmployeeDashboard = () => {
             <button
               key={item.key}
               className={`flex items-center gap-3 px-4 py-2 rounded-lg text-base font-medium transition-colors ${activeNav === item.key ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'}`}
-              onClick={() => { setActiveNav(item.key); setSidebarOpen(false); }}
+              onClick={() => {
+                setActiveNav(item.key);
+                setSidebarOpen(false);
+                navigate(item.path);
+              }}
             >
               {item.icon}
               {item.label}
@@ -196,7 +207,7 @@ const NewEmployeeDashboard = () => {
           ))}
         </nav>
         <div className="px-4 pb-6">
-          <Button className="w-full bg-blue-600 text-white flex items-center gap-2 justify-center">
+          <Button className="w-full bg-blue-600 text-white flex items-center gap-2 justify-center" onClick={() => navigate('/new-claim')}>
             <PlusCircle className="h-5 w-5" /> New Claim
           </Button>
         </div>

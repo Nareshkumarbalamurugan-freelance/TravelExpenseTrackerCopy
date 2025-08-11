@@ -19,8 +19,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
-  const [resetEmailInput, setResetEmailInput] = useState("");
-  const [resetEmployeeIdInput, setResetEmployeeIdInput] = useState("");
+  const [resetInput, setResetInput] = useState("");
   const [resetError, setResetError] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
@@ -36,7 +35,6 @@ const Login = () => {
     e.preventDefault();
     if ((!email && !employeeId) || !password) {
       toast({ title: "Missing fields", description: "Please enter Employee ID or Email and Password.", variant: "destructive" });
-      setIsLoading(false);
       return;
     }
     setIsLoading(true);
@@ -71,28 +69,25 @@ const Login = () => {
 
   // Registration removed per requirements
 
-  // OTP-based password reset flow
+  // Email-based password reset flow
   const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetLoading(true);
     setResetError("");
-    let resetEmail = resetEmailInput || email;
-    if (!resetEmail && resetEmployeeIdInput) {
-      resetEmail = await resolveEmailFromEmployeeId(resetEmployeeIdInput.trim());
+    let resetEmail = resetInput || email;
+    if (!resetEmail && employeeId) {
+      resetEmail = await resolveEmailFromEmployeeId(employeeId.trim());
       if (!resetEmail) {
-        console.warn("Password reset: Employee ID not found", resetEmployeeIdInput);
         setResetError("Employee ID not found");
         setResetLoading(false);
         return;
       }
     }
     try {
-      console.log("Sending password reset email to", resetEmail);
       await sendPasswordResetEmail(auth, resetEmail);
       setResetSent(true);
       toast({ title: "Reset email sent", description: "Check your inbox for the reset link." });
     } catch (err: any) {
-      console.error("Failed to send reset email:", err);
       setResetError(err.message || "Failed to send reset email");
     }
     setResetLoading(false);
@@ -160,46 +155,39 @@ const Login = () => {
                     </Button>
                     <Button
                       type="submit"
-                      size="xl"
-                      className="btn-ripple"
-                      disabled={isLoading || (!email && !employeeId) || !password}
+                      className="bg-blue-600 text-white"
+                      onMouseDown={onMouseDownRipple}
                     >
-                      {isLoading ? "Signing in..." : "Sign In"}
+                      {isLoading ? 'Logging in...' : 'Login'}
                     </Button>
                   </div>
-                  <div className="text-xs text-gray-500">You can login with either Employee ID or Email.</div>
                 </form>
               ) : (
                 <form onSubmit={handleForgot} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="forgot-employeeId">Employee ID</Label>
+                    <Label htmlFor="reset-email">Email or Employee ID</Label>
                     <Input
-                      id="forgot-employeeId"
+                      id="reset-email"
                       type="text"
-                      placeholder="EMP001"
-                      value={resetEmployeeIdInput}
-                      onChange={e => setResetEmployeeIdInput(e.target.value)}
+                      placeholder="Enter your email or employee ID"
+                      value={resetInput}
+                      onChange={e => setResetInput(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="forgot-email">Email</Label>
-                    <Input
-                      id="forgot-email"
-                      type="email"
-                      placeholder="you@company.com"
-                      value={resetEmailInput}
-                      onChange={e => setResetEmailInput(e.target.value)}
-                    />
+                  {resetError && <div className="text-red-600 text-sm">{resetError}</div>}
+                  {resetSent && <div className="text-green-600 text-sm">Reset email sent! Check your inbox.</div>}
+                  <div className="flex items-center justify-between pt-2">
+                    <Button type="button" variant="link" onClick={() => setShowForgot(false)}>
+                      Back to login
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="bg-blue-600 text-white"
+                      onMouseDown={onMouseDownRipple}
+                    >
+                      {resetLoading ? 'Sending...' : 'Send Reset Email'}
+                    </Button>
                   </div>
-                  <div className="text-xs text-gray-500">You can reset password with either Employee ID or Email.</div>
-                  {resetError && <div className="text-xs text-red-500">{resetError}</div>}
-                  {resetSent && <div className="text-xs text-green-600">Reset email sent! Check your inbox.</div>}
-                  <Button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-semibold" disabled={resetLoading}>
-                    {resetLoading ? 'Sending...' : 'Send Reset Email'}
-                  </Button>
-                  <Button type="button" className="w-full text-gray-600 mt-2" onClick={() => setShowForgot(false)}>
-                    Back to Login
-                  </Button>
                 </form>
               )}
             </CardContent>

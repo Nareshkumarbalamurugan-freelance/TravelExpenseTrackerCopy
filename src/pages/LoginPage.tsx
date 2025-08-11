@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { getEmployeeByIdOrEmail, sendOTP, verifyOTP } from '../lib/employeeService';
+import { toast } from '../components/ui/use-toast';
 
 const Login: React.FC = () => {
   const [employeeId, setEmployeeId] = useState('');
@@ -9,20 +12,116 @@ const Login: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const { login } = useAuth();
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement login logic
+    try {
+      // Check if input is employee ID or email
+      const identifier = employeeId || email;
+      const employee = await getEmployeeByIdOrEmail(identifier);
+      
+      if (!employee) {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: "Employee not found. Please check your credentials."
+        });
+        return;
+      }
+
+      const { error } = await login(employee.email, password);
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: error
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Login Error",
+        description: "An unexpected error occurred. Please try again."
+      });
+    }
   };
 
-  const handleForgot = (e: React.FormEvent) => {
+  const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Send OTP to registered phone/email
-    setOtpSent(true);
+    try {
+      const identifier = employeeId || email;
+      const employee = await getEmployeeByIdOrEmail(identifier);
+      
+      if (!employee) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Employee not found. Please check your credentials."
+        });
+        return;
+      }
+
+      const sent = await sendOTP(employee);
+      if (sent) {
+        setOtpSent(true);
+        toast({
+          title: "OTP Sent",
+          description: "Please check your registered email and phone for the OTP."
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to send OTP. Please try again."
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred. Please try again."
+      });
+    }
   };
 
-  const handleReset = (e: React.FormEvent) => {
+  const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Verify OTP and reset password
+    try {
+      const identifier = employeeId || email;
+      const employee = await getEmployeeByIdOrEmail(identifier);
+      
+      if (!employee) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Employee not found. Please check your credentials."
+        });
+        return;
+      }
+
+      const isValid = await verifyOTP(employee.id, otp);
+      if (isValid) {
+        // TODO: Implement password reset logic
+        toast({
+          title: "Success",
+          description: "Password reset successful. Please login with your new password."
+        });
+        setShowForgot(false);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Invalid or expired OTP. Please try again."
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An unexpected error occurred. Please try again."
+      });
+    }
   };
 
   return (

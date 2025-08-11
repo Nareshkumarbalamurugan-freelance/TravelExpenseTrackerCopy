@@ -1,3 +1,242 @@
+import { storage, db } from "./firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  Timestamp
+} from "firebase/firestore";
+import { EmployeePosition, TripSession } from "./tripSession";
+
+// ...existing code...
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name?: string;
+  position: string;
+  isActive: boolean;
+  createdAt: Date;
+  lastLoginAt?: Date;
+  totalTrips: number;
+  totalDistance: number;
+  totalExpenses: number;
+
+  monthlyStats: MonthlyStats[];
+}
+
+export interface MonthlyStats {
+  month: string; // YYYY-MM format
+  trips: number;
+  distance: number;
+  expenses: number;
+}
+
+export interface NewEmployee {
+  name: string;
+  email: string;
+  position: string;
+  phone: string;
+}
+
+// ...existing code...
+
+export const addEmployee = async (employeeData: NewEmployee): Promise<string> => {
+  try {
+    // Check if email already exists
+    const emailQuery = query(collection(db, 'employees'), where('email', '==', employeeData.email));
+    const emailSnapshot = await getDocs(emailQuery);
+    
+    if (!emailSnapshot.empty) {
+      throw new Error('An employee with this email already exists');
+    }
+
+    // Add new employee
+    const docRef = await addDoc(collection(db, 'employees'), {
+      ...employeeData,
+      status: 'active',
+      createdAt: new Date(),
+      approvalChain: {}, // Empty approval chain by default
+      resetPassword: null
+    });
+
+    return docRef.id;
+  } catch (error) {
+    console.error('Error adding employee:', error);
+    throw error;
+  }
+};
+
+export const updateEmployeeStatus = async (employeeId: string, isActive: boolean): Promise<void> => {
+  try {
+    const employeeRef = doc(db, 'employees', employeeId);
+    await updateDoc(employeeRef, {
+      status: isActive ? 'active' : 'inactive'
+    });
+  } catch (error) {
+    console.error('Error updating employee status:', error);
+    throw error;
+  }
+};
+
+/**
+ * File upload/download helpers for claim receipts
+ */
+export const uploadClaimReceipt = async (claimId: string, file: File | Blob): Promise<string> => {
+  const refPath = `claimReceipts/${claimId}/${Date.now()}_${(file as File).name || 'receipt'}`;
+  const ref = storageRef(storage, refPath);
+  await uploadBytes(ref, file);
+  return await getDownloadURL(ref);
+};
+
+export const getClaimReceiptUrl = async (refPath: string): Promise<string> => {
+  const ref = storageRef(storage, refPath);
+  return await getDownloadURL(ref);
+};
+
+export const deleteClaimReceipt = async (refPath: string): Promise<void> => {
+  const ref = storageRef(storage, refPath);
+  await deleteObject(ref);
+};
+/**
+ * CRUD for Claims
+ */
+export const getAllClaims = async () => {
+  const snapshot = await getDocs(collection(db, 'claims'));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+export const getClaimById = async (id: string) => {
+  const docSnap = await getDoc(doc(db, 'claims', id));
+  return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+};
+
+export const addClaim = async (data: any) => {
+  const docRef = await addDoc(collection(db, 'claims'), {
+    ...data,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+  return docRef.id;
+};
+
+export const updateClaim = async (id: string, updates: any) => {
+  await updateDoc(doc(db, 'claims', id), {
+    ...updates,
+    updatedAt: Timestamp.now(),
+  });
+};
+
+export const deleteClaim = async (id: string) => {
+  await deleteDoc(doc(db, 'claims', id));
+};
+
+/**
+ * CRUD for Dealer Visits
+ */
+export const getAllDealerVisits = async () => {
+  const snapshot = await getDocs(collection(db, 'dealerVisits'));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+export const getDealerVisitById = async (id: string) => {
+  const docSnap = await getDoc(doc(db, 'dealerVisits', id));
+  return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+};
+
+export const addDealerVisit = async (data: any) => {
+  const docRef = await addDoc(collection(db, 'dealerVisits'), {
+    ...data,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+  return docRef.id;
+};
+
+export const updateDealerVisit = async (id: string, updates: any) => {
+  await updateDoc(doc(db, 'dealerVisits', id), {
+    ...updates,
+    updatedAt: Timestamp.now(),
+  });
+};
+
+export const deleteDealerVisit = async (id: string) => {
+  await deleteDoc(doc(db, 'dealerVisits', id));
+};
+
+/**
+ * CRUD for Expenses
+ */
+export const getAllExpenses = async () => {
+  const snapshot = await getDocs(collection(db, 'expenses'));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+export const getExpenseById = async (id: string) => {
+  const docSnap = await getDoc(doc(db, 'expenses', id));
+  return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+};
+
+export const addExpense = async (data: any) => {
+  const docRef = await addDoc(collection(db, 'expenses'), {
+    ...data,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+  return docRef.id;
+};
+
+export const updateExpense = async (id: string, updates: any) => {
+  await updateDoc(doc(db, 'expenses', id), {
+    ...updates,
+    updatedAt: Timestamp.now(),
+  });
+};
+
+export const deleteExpense = async (id: string) => {
+  await deleteDoc(doc(db, 'expenses', id));
+};
+
+/**
+ * CRUD for Active Sessions
+ */
+export const getAllActiveSessions = async () => {
+  const snapshot = await getDocs(collection(db, 'activeSessions'));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+export const getActiveSessionById = async (id: string) => {
+  const docSnap = await getDoc(doc(db, 'activeSessions', id));
+  return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+};
+
+export const addActiveSession = async (data: any) => {
+  const docRef = await addDoc(collection(db, 'activeSessions'), {
+    ...data,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+  return docRef.id;
+};
+
+export const updateActiveSession = async (id: string, updates: any) => {
+  await updateDoc(doc(db, 'activeSessions', id), {
+    ...updates,
+    updatedAt: Timestamp.now(),
+  });
+};
+
+export const deleteActiveSession = async (id: string) => {
+  await deleteDoc(doc(db, 'activeSessions', id));
+};
 /**
  * Fetch all position rates
  */
@@ -21,50 +260,6 @@ export const getAllPositionRates = async (): Promise<(EmployeePosition & { id: s
     console.error('Error fetching position rates:', error);
     return [];
   }
-};
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  startAfter,
-  Timestamp,
-  writeBatch,
-  increment
-} from "firebase/firestore";
-import { db } from "./firebase";
-import { TripSession, EmployeePosition } from "./tripSession";
-
-// Re-export for convenience
-export type { EmployeePosition } from "./tripSession";
-
-// Enhanced interfaces for admin
-export interface AdminUser {
-  id: string;
-  email: string;
-  name?: string;
-  position: string;
-  isActive: boolean;
-  createdAt: Date;
-  lastLoginAt?: Date;
-  totalTrips: number;
-  totalDistance: number;
-  totalExpenses: number;
-  monthlyStats: MonthlyStats[];
-}
-
-export interface MonthlyStats {
-  month: string; // YYYY-MM format
-  trips: number;
-  distance: number;
-  expenses: number;
 }
 
 export interface AdminStats {

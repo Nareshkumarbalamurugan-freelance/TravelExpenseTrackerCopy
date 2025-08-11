@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getAllUsersWithStats, AdminUser } from '@/lib/adminService';
+import AddEmployeeDialog from './AddEmployeeDialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,6 +45,7 @@ const Employees = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -75,8 +77,16 @@ const Employees = () => {
     <div className="bg-white rounded-lg shadow">
       <div className="p-4 border-b flex justify-between items-center">
         <h2 className="text-lg font-semibold">All Employees</h2>
-        <Button>Add Employee</Button>
+        <Button onClick={() => setShowAddDialog(true)}>Add Employee</Button>
       </div>
+      <AddEmployeeDialog
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+        onEmployeeAdded={() => {
+          // Refresh the employee list
+          fetchUsers();
+        }}
+      />
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
