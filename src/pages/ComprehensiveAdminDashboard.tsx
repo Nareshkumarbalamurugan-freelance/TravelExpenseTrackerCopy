@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import {
   AdminUser,
@@ -131,6 +131,24 @@ const ComprehensiveAdminDashboard = () => {
   });
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [settingsForm, setSettingsForm] = useState<Partial<SystemSettings>>({});
+  
+  // New Employee Form State
+  const [newEmployee, setNewEmployee] = useState({
+    employeeId: '',
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    grade: '',
+    designation: '',
+    department: '',
+    approvalChain: {
+      L1: '',
+      L2: '',
+      L3: ''
+    }
+  });
+  const [isCreatingEmployee, setIsCreatingEmployee] = useState(false);
 
   // Load initial data
   useEffect(() => {
@@ -193,6 +211,95 @@ const ComprehensiveAdminDashboard = () => {
         description: "Failed to add position",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleCreateEmployee = async () => {
+    try {
+      console.log('🚀 AdminDashboard: Starting employee creation process...');
+      setIsCreatingEmployee(true);
+      
+      // Validation
+      if (!newEmployee.employeeId || !newEmployee.name || !newEmployee.email || !newEmployee.password || !newEmployee.grade) {
+        console.log('❌ AdminDashboard: Validation failed - missing required fields');
+        toast({
+          title: "Validation Error",
+          description: "Please fill all required fields (Employee ID, Name, Email, Password, Grade)",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Create employee in Firebase
+      console.log('📋 AdminDashboard: Attempting to import createEmployee function...');
+      const { createEmployee } = await import('../lib/unifiedEmployeeService');
+      console.log('✅ AdminDashboard: createEmployee function imported successfully from unifiedEmployeeService');
+      console.log('📊 AdminDashboard: Employee data to create:', {
+        id: newEmployee.employeeId,
+        email: newEmployee.email,
+        name: newEmployee.name,
+        grade: newEmployee.grade,
+        department: newEmployee.department || 'General'
+      });
+      
+      const result = await createEmployee({
+        id: newEmployee.employeeId,
+        email: newEmployee.email,
+        name: newEmployee.name,
+        grade: newEmployee.grade,
+        phone: newEmployee.phone || '',
+        department: newEmployee.department || 'General',
+        approvalChain: newEmployee.approvalChain,
+        active: true,
+        tempPassword: newEmployee.password // Store temporarily for user setup
+      });
+
+      console.log('📊 AdminDashboard: createEmployee result:', result);
+
+      if (result.success) {
+        // Reset form
+        setNewEmployee({
+          employeeId: '',
+          name: '',
+          email: '',
+          password: '',
+          phone: '',
+          grade: '',
+          designation: '',
+          department: '',
+          approvalChain: { L1: '', L2: '', L3: '' }
+        });
+
+        // Reload data
+        await loadDashboardData();
+
+        toast({
+          title: "Employee Created Successfully!",
+          description: `${newEmployee.name} can now login with email: ${newEmployee.email}. Share the temporary password: ${newEmployee.password} (they should change it on first login)`
+        });
+      } else {
+        console.log('❌ AdminDashboard: createEmployee returned failure result:', result);
+        toast({
+          title: "Error",
+          description: result.error || "Failed to create employee",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      console.error('💥 AdminDashboard: Error in handleCreateEmployee:', error);
+      console.error('💥 AdminDashboard: Error stack trace:', error.stack || 'No stack trace');
+      console.error('💥 AdminDashboard: Error type:', typeof error);
+      console.error('💥 AdminDashboard: Error name:', error.name || 'Unknown error');
+      console.error('💥 AdminDashboard: Error message:', error.message || 'No message');
+      
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create employee",
+        variant: "destructive"
+      });
+    } finally {
+      console.log('🏁 AdminDashboard: Employee creation process finished');
+      setIsCreatingEmployee(false);
     }
   };
 
@@ -521,8 +628,204 @@ const ComprehensiveAdminDashboard = () => {
         {/* Employees Tab */}
         <TabsContent value="employees" className="space-y-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Employee Management</CardTitle>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="bg-blue-600 text-white hover:bg-blue-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add New Employee
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Create New Employee</DialogTitle>
+                    <DialogDescription>
+                      Create a new employee account with proper grade assignment and approval chain setup. The employee will be able to login immediately after creation.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  {/* Quick Preset Buttons */}
+                  <div className="flex gap-2 mb-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNewEmployee({
+                        ...newEmployee,
+                        grade: 'L4_SALES',
+                        designation: 'Sales Manager',
+                        department: 'Sales'
+                      })}
+                    >
+                      Manager Preset
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNewEmployee({
+                        ...newEmployee,
+                        grade: 'BELOW_L4',
+                        designation: 'Sales Executive',
+                        department: 'Sales'
+                      })}
+                    >
+                      Executive Preset
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNewEmployee({
+                        ...newEmployee,
+                        grade: 'HR_MANAGER',
+                        designation: 'HR Manager',
+                        department: 'Human Resources'
+                      })}
+                    >
+                      HR Preset
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 py-4">
+                    <div>
+                      <Label htmlFor="employeeId">Employee ID *</Label>
+                      <Input
+                        id="employeeId"
+                        placeholder="EMP001"
+                        value={newEmployee.employeeId}
+                        onChange={(e) => setNewEmployee({...newEmployee, employeeId: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="name">Full Name *</Label>
+                      <Input
+                        id="name"
+                        placeholder="John Doe"
+                        value={newEmployee.name}
+                        onChange={(e) => setNewEmployee({...newEmployee, name: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="john@company.com"
+                        value={newEmployee.email}
+                        onChange={(e) => setNewEmployee({...newEmployee, email: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="password">Initial Password *</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="Temporary password"
+                        value={newEmployee.password}
+                        onChange={(e) => setNewEmployee({...newEmployee, password: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input
+                        id="phone"
+                        placeholder="+91-9876543210"
+                        value={newEmployee.phone}
+                        onChange={(e) => setNewEmployee({...newEmployee, phone: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="grade">Grade *</Label>
+                      <Select
+                        value={newEmployee.grade}
+                        onValueChange={(value) => setNewEmployee({...newEmployee, grade: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select grade" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="L4_SALES">L4 & Above (Sales)</SelectItem>
+                          <SelectItem value="BELOW_L4">Below L4</SelectItem>
+                          <SelectItem value="HR_MANAGER">HR Manager</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="designation">Designation</Label>
+                      <Input
+                        id="designation"
+                        placeholder="Sales Executive"
+                        value={newEmployee.designation}
+                        onChange={(e) => setNewEmployee({...newEmployee, designation: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="department">Department</Label>
+                      <Input
+                        id="department"
+                        placeholder="Sales"
+                        value={newEmployee.department}
+                        onChange={(e) => setNewEmployee({...newEmployee, department: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="l1Manager">L1 Manager (Employee ID)</Label>
+                      <Input
+                        id="l1Manager"
+                        placeholder="MGR001"
+                        value={newEmployee.approvalChain.L1}
+                        onChange={(e) => setNewEmployee({
+                          ...newEmployee, 
+                          approvalChain: {...newEmployee.approvalChain, L1: e.target.value}
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="l2Manager">L2 Manager (Employee ID)</Label>
+                      <Input
+                        id="l2Manager"
+                        placeholder="HR001"
+                        value={newEmployee.approvalChain.L2}
+                        onChange={(e) => setNewEmployee({
+                          ...newEmployee, 
+                          approvalChain: {...newEmployee.approvalChain, L2: e.target.value}
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="l3Manager">L3 Manager (Employee ID)</Label>
+                      <Input
+                        id="l3Manager"
+                        placeholder="DIR001"
+                        value={newEmployee.approvalChain.L3}
+                        onChange={(e) => setNewEmployee({
+                          ...newEmployee, 
+                          approvalChain: {...newEmployee.approvalChain, L3: e.target.value}
+                        })}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setNewEmployee({
+                        employeeId: '', name: '', email: '', password: '', phone: '', grade: '', 
+                        designation: '', department: '', approvalChain: {L1: '', L2: '', L3: ''}
+                      })}
+                    >
+                      Reset
+                    </Button>
+                    <Button 
+                      onClick={handleCreateEmployee} 
+                      disabled={isCreatingEmployee}
+                      className="bg-green-600 text-white hover:bg-green-700"
+                    >
+                      {isCreatingEmployee ? 'Creating...' : 'Create Employee'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -557,6 +860,9 @@ const ComprehensiveAdminDashboard = () => {
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>Edit Employee</DialogTitle>
+                              <DialogDescription>
+                                Update employee information. Changes will be saved immediately.
+                              </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
                               <div>

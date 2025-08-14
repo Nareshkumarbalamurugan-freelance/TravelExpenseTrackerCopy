@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import SEO from '@/components/SEO';
 import { useAuth } from '@/context/AuthContext';
 import { getPendingClaimsForManager, approveClaim, rejectClaim, escalateClaim } from '@/lib/database';
-import { getEmployeeByIdOrEmail } from '@/lib/employeeService';
+import { getEmployeeByIdOrEmail } from '@/lib/unifiedEmployeeService';
 
 const ClaimApprovals = () => {
   const { user } = useAuth();

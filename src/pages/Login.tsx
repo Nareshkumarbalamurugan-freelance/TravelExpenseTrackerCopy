@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { getEmployeeByIdOrEmail } from "@/lib/unifiedEmployeeService";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +12,18 @@ import { Label } from "@/components/ui/label";
 import SEO from "@/components/SEO";
 import { toast } from "@/hooks/use-toast";
 
-const Login = () => {
+import { isUserManagerForOthers } from "@/lib/managerUtils";
+
+interface LoginProps {
+  heading?: string;
+  isManager?: boolean;
+  forceEmployee?: boolean;
+  forceManager?: boolean;
+}
+
+const Login: React.FC<LoginProps> = ({ heading = "Welcome", isManager = false, forceEmployee = false, forceManager = false }) => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user, loading } = useAuth();
   const [employeeId, setEmployeeId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,13 +33,23 @@ const Login = () => {
   const [resetError, setResetError] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [managerError, setManagerError] = useState("");
 
-  // Helper to resolve employeeId to email (simulate Firestore lookup)
+  // Helper to resolve employeeId to email (using Firestore lookup)
   async function resolveEmailFromEmployeeId(empId: string): Promise<string | null> {
-    // TODO: Replace with real Firestore lookup
-    if (empId === "EMP001") return "nareshkumarbalamurugan@gmail.com";
-    return null;
+    try {
+      console.log('🔍 Login: Resolving employee ID to email:', empId);
+      const employee = await getEmployeeByIdOrEmail(empId);
+      console.log('📊 Login: Employee lookup result:', employee ? `found (${employee.email})` : 'not found');
+      return employee?.email || null;
+    } catch (error) {
+      console.error('❌ Login: Error resolving employee ID:', error);
+      return null;
+    }
   }
+
+  // Track login state and navigation after user context is loaded
+  const [pendingNav, setPendingNav] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,8 +76,7 @@ const Login = () => {
         console.error("Login error:", error);
         toast({ title: "Login failed", description: error, variant: "destructive" });
       } else {
-        console.log("Login successful, navigating to home");
-        navigate("/");
+        setPendingNav(true); // Wait for user context to update
       }
     } catch (error) {
       console.error("Unexpected login error:", error);
@@ -66,6 +85,40 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  // Navigate only after user context is loaded and login was successful
+  useEffect(() => {
+    const checkManagerAndRedirect = async () => {
+      if (pendingNav && user && !loading) {
+        if (forceEmployee) {
+          navigate("/");
+          setPendingNav(false);
+          return;
+        }
+        if (forceManager) {
+          // Only redirect to approvals if user is manager for others
+          const isManager = await isUserManagerForOthers(user.uid);
+          if (isManager) {
+            navigate("/claim-approvals");
+            setPendingNav(false);
+            return;
+          } else {
+            // Not a manager, show error and redirect to employee login
+            setManagerError("You do not have manager privileges. Please use Employee Login.");
+            setTimeout(() => {
+              navigate("/login-employee");
+              setPendingNav(false);
+            }, 2000);
+            return;
+          }
+        }
+        // Default: old logic
+        navigate("/");
+        setPendingNav(false);
+      }
+    };
+    checkManagerAndRedirect();
+  }, [pendingNav, user, loading, navigate, forceEmployee, forceManager]);
 
   // Registration removed per requirements
 
@@ -106,6 +159,11 @@ const Login = () => {
     <>
       <SEO title="Login" description="Login to your travel expense tracker account." canonical="/login" />
       <div className="min-h-screen flex items-center justify-center px-4">
+        {managerError && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-red-100 text-red-700 px-4 py-2 rounded shadow z-50 animate-fade-in">
+            {managerError}
+          </div>
+        )}
         <div className="w-full max-w-md">
           <div className="text-center mb-6 animate-fade-in">
             <div className="text-2xl font-bold">Noveltech Feeds</div>
@@ -113,7 +171,11 @@ const Login = () => {
           </div>
           <Card className="animate-fade-in">
             <CardHeader>
-              <CardTitle className="text-xl">Welcome</CardTitle>
+              <CardTitle className="text-xl">{heading}</CardTitle>
+              {isManager && <div className="text-xs text-blue-700 mt-1">Manager Login</div>}
+              <div className="mt-2">
+                <Link to="/" className="text-xs text-blue-500 hover:underline">&larr; Back to Login Selection</Link>
+              </div>
             </CardHeader>
             <CardContent>
               {!showForgot ? (
@@ -157,6 +219,7 @@ const Login = () => {
                       type="submit"
                       className="bg-blue-600 text-white"
                       onMouseDown={onMouseDownRipple}
+                      disabled={isLoading}
                     >
                       {isLoading ? 'Logging in...' : 'Login'}
                     </Button>
@@ -184,6 +247,7 @@ const Login = () => {
                       type="submit"
                       className="bg-blue-600 text-white"
                       onMouseDown={onMouseDownRipple}
+                      disabled={resetLoading}
                     >
                       {resetLoading ? 'Sending...' : 'Send Reset Email'}
                     </Button>

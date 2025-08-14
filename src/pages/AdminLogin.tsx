@@ -151,10 +151,10 @@ const AdminLogin: React.FC = () => {
                 Demo Credentials:
               </p>
               <p className="text-xs text-blue-700">
-                Username: <code className="bg-blue-100 px-1 rounded">admin</code>
+                Username: <code className="bg-blue-100 px-1 rounded">admin@noveltech.com</code>
               </p>
               <p className="text-xs text-blue-700">
-                Password: <code className="bg-blue-100 px-1 rounded">admin@poultrymitra</code>
+                Password: <code className="bg-blue-100 px-1 rounded">admin@noveltech</code>
               </p>
             </div>
           </div>

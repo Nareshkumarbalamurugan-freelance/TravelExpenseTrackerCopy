@@ -25,32 +25,103 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🔐 AuthContext: Setting up auth state listener');
     const unsubscribe = onAuthStateChange(async (firebaseUser: FirebaseUser | null) => {
+      console.log('🔐 AuthContext: Auth state changed', { user: firebaseUser?.email || 'null' });
+      
       if (firebaseUser) {
         try {
-          // Get user data from Firestore including position
-          const { userData, error } = await getUserData(firebaseUser.uid);
+          console.log('👤 AuthContext: Loading user data for', firebaseUser.email);
           
-          if (userData && !error) {
-            const userInfo: User = {
-              uid: firebaseUser.uid,
-              name: userData.name || firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
-              email: firebaseUser.email || "",
-              position: userData.position || "Sales Executive",
-            };
-            setUser(userInfo);
-          } else {
-            // Fallback if Firestore data not found
-            const userInfo: User = {
-              uid: firebaseUser.uid,
-              name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
-              email: firebaseUser.email || "",
-              position: "Sales Executive",
-            };
-            setUser(userInfo);
+          // First try to get employee data from employees collection
+          try {
+            console.log('📋 AuthContext: Attempting to import unifiedEmployeeService');
+            const { getEmployeeByIdOrEmail } = await import('../lib/unifiedEmployeeService');
+            console.log('✅ AuthContext: unifiedEmployeeService imported successfully');
+            
+            console.log('🔍 AuthContext: Looking up employee by email:', firebaseUser.email);
+            const employee = await getEmployeeByIdOrEmail(firebaseUser.email!);
+            console.log('📊 AuthContext: Employee lookup result:', employee ? 'found' : 'not found');
+            
+            if (employee) {
+              console.log('👤 AuthContext: Creating user info from employee data');
+              const userInfo: User = {
+                uid: firebaseUser.uid,
+                name: employee.name || firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
+                email: firebaseUser.email || "",
+                position: employee.grade || "Sales Executive", // Use grade as position
+              };
+              console.log('✅ AuthContext: User info created from employee data:', userInfo.name);
+              setUser(userInfo);
+            } else {
+              console.log('⚠️ AuthContext: No employee found, trying users collection');
+              
+              // Special handling for admin users
+              if (firebaseUser.email && firebaseUser.email.includes('admin')) {
+                console.log('🔑 AuthContext: Admin user detected, using admin profile');
+                const userInfo: User = {
+                  uid: firebaseUser.uid,
+                  name: firebaseUser.displayName || 'Admin',
+                  email: firebaseUser.email || "",
+                  position: "Administrator",
+                };
+                console.log('✅ AuthContext: Admin user info created:', userInfo.name);
+                setUser(userInfo);
+                return; // Skip further fallback attempts for admin
+              }
+              
+              // Fallback to users collection
+              const { userData, error } = await getUserData(firebaseUser.uid);
+              
+              if (userData && !error) {
+                console.log('✅ AuthContext: User data found in users collection');
+                const userInfo: User = {
+                  uid: firebaseUser.uid,
+                  name: userData.name || firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
+                  email: firebaseUser.email || "",
+                  position: userData.position || "Sales Executive",
+                };
+                setUser(userInfo);
+              } else {
+                console.log('⚠️ AuthContext: No user data found, using fallback');
+                // Ultimate fallback if no data found
+                const userInfo: User = {
+                  uid: firebaseUser.uid,
+                  name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
+                  email: firebaseUser.email || "",
+                  position: "Sales Executive",
+                };
+                setUser(userInfo);
+              }
+            }
+          } catch (importError) {
+            console.error('❌ AuthContext: Error importing or using employeeService:', importError);
+            console.log('⚠️ AuthContext: Falling back to users collection only');
+            
+            // Fallback to users collection only
+            const { userData, error } = await getUserData(firebaseUser.uid);
+            
+            if (userData && !error) {
+              const userInfo: User = {
+                uid: firebaseUser.uid,
+                name: userData.name || firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
+                email: firebaseUser.email || "",
+                position: userData.position || "Sales Executive",
+              };
+              setUser(userInfo);
+            } else {
+              // Ultimate fallback
+              const userInfo: User = {
+                uid: firebaseUser.uid,
+                name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
+                email: firebaseUser.email || "",
+                position: "Sales Executive",
+              };
+              setUser(userInfo);
+            }
           }
         } catch (error) {
-          console.error('Error loading user data:', error);
+          console.error('❌ AuthContext: Error loading user data:', error);
           // Fallback user data
           const userInfo: User = {
             uid: firebaseUser.uid,
@@ -61,12 +132,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(userInfo);
         }
       } else {
+        console.log('🔐 AuthContext: No user, setting to null');
         setUser(null);
       }
       setLoading(false);
+      console.log('✅ AuthContext: Auth state processing complete');
     });
 
-    return () => unsubscribe();
+    return () => {
+      console.log('🔐 AuthContext: Cleaning up auth listener');
+      unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {

@@ -1,68 +1,70 @@
 
-import React, { useState, useEffect } from 'react';
-import { getAllUsersWithStats, AdminUser } from '@/lib/adminService';
-import AddEmployeeDialog from './AddEmployeeDialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import React, { useEffect, useState } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { getAllEmployees, Employee } from '@/lib/unifiedEmployeeService';
+import { Skeleton } from '@/components/ui/skeleton';
+import UnifiedAddEmployeeDialog from './UnifiedAddEmployeeDialog';
 import { MoreVertical } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
-const EmployeeRow = ({ user }: { user: AdminUser }) => (
+const EmployeeRow: React.FC<{ employee: Employee }> = ({ employee }) => (
   <TableRow>
     <TableCell>
-      <div className="font-medium">{user.name}</div>
-      <div className="text-sm text-muted-foreground">{user.email}</div>
+      <div>
+        <div className="font-medium">{employee.name}</div>
+        <div className="text-sm text-gray-500">{employee.email}</div>
+        <div className="text-sm text-gray-500">ID: {employee.employeeId}</div>
+      </div>
     </TableCell>
-    <TableCell>{user.position}</TableCell>
+    <TableCell>
+      <div>
+        <div className="font-medium">{employee.designation || 'Not specified'}</div>
+        <div className="text-sm text-gray-500">{employee.department}</div>
+        <div className="text-sm text-gray-500">Grade: {employee.grade}</div>
+      </div>
+    </TableCell>
     <TableCell className="text-center">
-      <Badge variant={user.isActive ? 'default' : 'destructive'}>
-        {user.isActive ? 'Active' : 'Inactive'}
+      <Badge variant={employee.active ? "default" : "secondary"}>
+        {employee.active ? "Active" : "Inactive"}
       </Badge>
     </TableCell>
-    <TableCell className="text-right">{user.totalTrips}</TableCell>
-    <TableCell className="text-right">{user.totalDistance.toFixed(2)} km</TableCell>
-    <TableCell className="text-right">₹{user.totalExpenses.toLocaleString('en-IN')}</TableCell>
+    <TableCell className="text-right">0</TableCell>
+    <TableCell className="text-right">0.00 km</TableCell>
+    <TableCell className="text-right">₹0</TableCell>
     <TableCell className="text-right">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <MoreVertical className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuItem>Edit User</DropdownMenuItem>
-          <DropdownMenuItem>View Trips</DropdownMenuItem>
-          <DropdownMenuItem className="text-red-600">Deactivate</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Button variant="outline" size="sm">
+        Edit
+      </Button>
     </TableCell>
   </TableRow>
 );
 
 const Employees = () => {
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setIsLoading(true);
-        const userList = await getAllUsersWithStats();
-        setUsers(userList);
-        setError(null);
-      } catch (err) {
-        setError('Failed to fetch employees. Please try again later.');
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchEmployees = async () => {
+    try {
+      console.log('📋 Employees: Fetching employees with unified service...');
+      setIsLoading(true);
+      const employeeList = await getAllEmployees();
+      console.log('✅ Employees: Found', employeeList.length, 'employees');
+      setEmployees(employeeList);
+      setError(null);
+    } catch (err) {
+      console.error('💥 Employees: Error fetching employees:', err);
+      setError('Failed to fetch employees. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchUsers();
+  useEffect(() => {
+    fetchEmployees();
   }, []);
 
   if (error) {
@@ -79,12 +81,12 @@ const Employees = () => {
         <h2 className="text-lg font-semibold">All Employees</h2>
         <Button onClick={() => setShowAddDialog(true)}>Add Employee</Button>
       </div>
-      <AddEmployeeDialog
+      <UnifiedAddEmployeeDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         onEmployeeAdded={() => {
           // Refresh the employee list
-          fetchUsers();
+          fetchEmployees();
         }}
       />
       <div className="overflow-x-auto">
@@ -113,8 +115,14 @@ const Employees = () => {
                   <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                 </TableRow>
               ))
+            ) : employees.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  No employees found. Add your first employee!
+                </TableCell>
+              </TableRow>
             ) : (
-              users.map(user => <EmployeeRow key={user.id} user={user} />)
+              employees.map(employee => <EmployeeRow key={employee.id} employee={employee} />)
             )}
           </TableBody>
         </Table>

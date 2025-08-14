@@ -6,12 +6,13 @@ import { useAuth } from '@/context/AuthContext';
 import { Activity, DollarSign, Route, Award, TrendingUp, Menu, User, PlusCircle, History, FilePlus, FileText } from 'lucide-react';
 import TripControls from '@/components/TripControls';
 import { getCompletedTrips, TripSession } from '@/lib/tripSession';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useEffect, useRef } from 'react';
 import { createClaim } from '@/lib/database';
 import { uploadClaimReceipt } from '@/lib/adminService';
+import { getClaimsForEmployee, ClaimStatus } from '@/lib/claimsService';
 import SEO from '@/components/SEO';
 
 const navItems = [
@@ -53,6 +54,8 @@ const NewEmployeeDashboard = () => {
   const [claimReceipt, setClaimReceipt] = useState<File|null>(null);
   const [claimLoading, setClaimLoading] = useState(false);
   const [claimStatus, setClaimStatus] = useState<any[]>([]);
+  const [myClaims, setMyClaims] = useState<any[]>([]);
+  const [claimsLoading, setClaimsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -132,6 +135,26 @@ const NewEmployeeDashboard = () => {
       }
     };
     fetchTrips();
+  }, [user]);
+
+  // Load claims for employee
+  useEffect(() => {
+    const fetchClaims = async () => {
+      if (!user?.email) return;
+      
+      setClaimsLoading(true);
+      try {
+        const claims = await getClaimsForEmployee(user.email);
+        setMyClaims(claims);
+        console.log('📋 Employee claims loaded:', claims.length);
+      } catch (error) {
+        console.error('💥 Error loading claims:', error);
+      } finally {
+        setClaimsLoading(false);
+      }
+    };
+
+    fetchClaims();
   }, [user]);
 
   const handleClaimSubmit = async (e: React.FormEvent) => {
@@ -315,45 +338,20 @@ const NewEmployeeDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-gray-500 text-sm mb-2">Submit your expense claims here.</div>
-                <Dialog open={claimModalOpen} onOpenChange={setClaimModalOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="mt-2 w-full bg-blue-600 text-white">
-                      <PlusCircle className="h-5 w-5" /> New Claim
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Submit Expense Claim</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleClaimSubmit} className="space-y-4">
-                      <div>
-                        <Label htmlFor="claim-type">Type</Label>
-                        <Input id="claim-type" value={claimType} onChange={e => setClaimType(e.target.value)} required />
-                      </div>
-                      <div>
-                        <Label htmlFor="claim-amount">Amount</Label>
-                        <Input id="claim-amount" type="number" value={claimAmount} onChange={e => setClaimAmount(e.target.value)} required min={1} />
-                      </div>
-                      <div>
-                        <Label htmlFor="claim-desc">Description</Label>
-                        <Input id="claim-desc" value={claimDesc} onChange={e => setClaimDesc(e.target.value)} required />
-                      </div>
-                      <div>
-                        <Label htmlFor="claim-receipt">Receipt (optional)</Label>
-                        <Input id="claim-receipt" type="file" accept="image/*,application/pdf" ref={fileInputRef} onChange={e => setClaimReceipt(e.target.files?.[0] || null)} />
-                      </div>
-                      <DialogFooter>
-                        <Button type="submit" className="w-full bg-blue-600 text-white" disabled={claimLoading}>
-                          {claimLoading ? 'Submitting...' : 'Submit Claim'}
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-                {/* Claim status list */}
+                <Button 
+                  className="mt-2 w-full bg-blue-600 text-white"
+                  onClick={() => navigate('/new-claim')}
+                >
+                  <PlusCircle className="h-5 w-5" /> New Claim
+                </Button>
+                {/* My Claims section with real data */}
                 <div className="mt-6">
-                  <div className="font-semibold mb-2 flex items-center gap-2 text-sm"><FileText className="h-4 w-4" /> My Claims</div>
-                  {claimStatus.length === 0 ? (
+                  <div className="font-semibold mb-2 flex items-center gap-2 text-sm">
+                    <FileText className="h-4 w-4" /> My Claims
+                  </div>
+                  {claimsLoading ? (
+                    <div className="text-xs text-gray-400">Loading claims...</div>
+                  ) : myClaims.length === 0 ? (
                     <div className="text-xs text-gray-400">No claims submitted yet.</div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -364,37 +362,49 @@ const NewEmployeeDashboard = () => {
                             <th className="text-right p-2 font-medium">Amount</th>
                             <th className="text-left p-2 font-medium">Status</th>
                             <th className="text-left p-2 font-medium">Date</th>
-                            <th className="text-left p-2 font-medium">Receipt</th>
-                            <th className="text-left p-2 font-medium">Actions</th>
+                            <th className="text-left p-2 font-medium">Description</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {claimStatus.map((c, idx) => (
-                            <tr key={idx} className="border-t border-border">
-                              <td className="p-2">{c.type}</td>
-                              <td className="p-2 text-right">₹ {c.amount}</td>
-                              <td className="p-2">{c.status}</td>
-                              <td className="p-2">{c.date}</td>
+                          {myClaims.slice(0, 5).map((claim, idx) => (
+                            <tr key={claim.id || idx} className="border-t border-border">
+                              <td className="p-2 capitalize">{claim.type}</td>
+                              <td className="p-2 text-right">₹{claim.amount?.toLocaleString()}</td>
                               <td className="p-2">
-                                {c.receipt ? (
-                                  <a href={c.receipt} download target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Download</a>
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
+                                <span className={`text-xs px-2 py-1 rounded-full ${
+                                  claim.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                  claim.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                  claim.status === 'pending_l1' || claim.status === 'pending_l2' || claim.status === 'pending_l3' 
+                                    ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {claim.status === 'pending_l1' ? 'Pending L1' :
+                                   claim.status === 'pending_l2' ? 'Pending L2' :
+                                   claim.status === 'pending_l3' ? 'Pending L3' :
+                                   claim.status}
+                                </span>
                               </td>
                               <td className="p-2">
-                                <button
-                                  className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
-                                  onClick={() => handleSendToManager(c)}
-                                  disabled={c.status !== 'Pending'}
-                                >
-                                  Send to Manager
-                                </button>
+                                {claim.createdAt ? new Date(claim.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+                              </td>
+                              <td className="p-2 truncate max-w-20" title={claim.description}>
+                                {claim.description}
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
+                      {myClaims.length > 5 && (
+                        <div className="mt-2 text-right">
+                          <Button 
+                            variant="link" 
+                            size="sm" 
+                            onClick={() => navigate('/claims')}
+                            className="text-blue-600 text-xs hover:underline p-0"
+                          >
+                            View all claims
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

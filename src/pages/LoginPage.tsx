@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getEmployeeByIdOrEmail, sendOTP, verifyOTP } from '../lib/employeeService';
+import { getEmployeeByIdOrEmail, sendOTP, verifyOTP } from '../lib/unifiedEmployeeService';
 import { toast } from '../components/ui/use-toast';
 
 const Login: React.FC = () => {
@@ -62,8 +62,8 @@ const Login: React.FC = () => {
         return;
       }
 
-      const sent = await sendOTP(employee);
-      if (sent) {
+      const sent = await sendOTP(employee.phone || employee.email);
+      if (sent.success) {
         setOtpSent(true);
         toast({
           title: "OTP Sent",

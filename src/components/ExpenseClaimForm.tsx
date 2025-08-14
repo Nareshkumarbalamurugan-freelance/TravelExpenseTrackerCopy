@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getEmployeeGrade } from '../lib/employeeService';
+import { getEmployeeGrade } from '../lib/unifiedEmployeeService';
 import { Employee, EmployeeGrade } from '../types/employee';
 import { Input } from './ui/input';
 import { Button } from './ui/button';

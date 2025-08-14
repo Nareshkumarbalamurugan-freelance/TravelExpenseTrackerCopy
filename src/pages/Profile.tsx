@@ -1,6 +1,10 @@
 import SEO from "@/components/SEO";
 import { useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react";
+import { getEmployeeByIdOrEmail, getEmployeeGrade } from "@/lib/unifiedEmployeeService";
+import { getEntitlementsForGrade } from "@/lib/entitlementRules";
 import { useAdmin } from "@/context/AdminContext";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +12,27 @@ import { Shield, Settings } from "lucide-react";
 
 const Profile = () => {
   const { user, logout } = useAuth();
+  const [grade, setGrade] = useState(null);
+  const [entitlements, setEntitlements] = useState(null);
+  const [isManager, setIsManager] = useState(false);
+
+  useEffect(() => {
+    if (user?.email) {
+      getEmployeeByIdOrEmail(user.email).then(emp => {
+        if (emp?.grade) {
+          getEmployeeGrade(emp.grade).then(gr => {
+            setGrade(gr);
+            if (gr) setEntitlements(getEntitlementsForGrade(gr));
+          });
+        }
+        // Check if user is L1/L2/L3 manager
+        if (emp && emp.approvalChain) {
+          const manager = Object.values(emp.approvalChain).includes(emp.id);
+          setIsManager(manager);
+        }
+      });
+    }
+  }, [user]);
   const { isAdmin } = useAdmin();
   const navigate = useNavigate();
 
@@ -46,6 +71,16 @@ const Profile = () => {
               <div className="text-sm text-muted-foreground">Position</div>
               <div className="font-medium">{user?.position}</div>
             </div>
+            {entitlements && (
+              <div>
+                <div className="text-sm text-muted-foreground">Entitlements</div>
+                <div className="font-medium">
+                  Vehicle: {entitlements.vehicleType}<br />
+                  Fuel Rule: {entitlements.fuelRule}<br />
+                  {entitlements.specialEntitlement && <span>Special Entitlement</span>}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -69,6 +104,30 @@ const Profile = () => {
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Open Admin Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+        {/* Manager Access Panel */}
+        {isManager && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <Shield className="h-5 w-5 text-blue-600" />
+                <span>Manager Access</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-3">
+                You have manager privileges. Access the claim approvals dashboard to review and approve claims.
+              </p>
+              <Button 
+                onClick={() => navigate("/claim-approvals")}
+                variant="outline" 
+                className="w-full"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Open Claim Approvals
               </Button>
             </CardContent>
           </Card>

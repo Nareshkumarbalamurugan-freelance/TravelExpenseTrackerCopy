@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from "react";
 import SEO from "@/components/SEO";
 import { useAuth } from "@/context/AuthContext";
 import { getCompletedTrips } from "@/lib/tripSession";
-
+import { calculateExpenseAmount } from "@/lib/expenseCalculator";
 
 const TripHistory = () => {
   const { user } = useAuth();
@@ -28,10 +29,15 @@ const TripHistory = () => {
           if (typeof d.toDate === 'function') return d.toDate();
           return new Date(d);
         };
-        const tripHistory = trips.map((trip) => ({
-          date: getDate(trip.startTime).toLocaleDateString(),
-          distanceKm: trip.totalDistance || 0,
-          amount: trip.totalExpense || 0,
+        // Recalculate amount for each trip using latest rates
+        const tripHistory = await Promise.all(trips.map(async (trip) => {
+          const distanceKm = trip.totalDistance || 0;
+          const amount = await calculateExpenseAmount(distanceKm, user.position || 'Sales Executive');
+          return {
+            date: getDate(trip.startTime).toLocaleDateString(),
+            distanceKm,
+            amount,
+          };
         }));
         setHistory(tripHistory);
       } catch (e: any) {
@@ -46,37 +52,39 @@ const TripHistory = () => {
   return (
     <>
       <SEO title="Trip History" description="Review your recent trips, distances, and earnings." canonical="/history" />
-      <header className="mb-6 animate-fade-in">
-        <h1 className="text-2xl font-semibold">Trip History</h1>
+      <header className="mb-4 sm:mb-6 animate-fade-in px-4 sm:px-0">
+        <h1 className="text-xl sm:text-2xl font-semibold">Trip History</h1>
       </header>
 
-      <section className="animate-fade-in">
-        <div className="rounded-lg border border-border overflow-hidden">
+      <section className="animate-fade-in px-2 sm:px-0">
+        <div className="rounded-lg border border-border overflow-hidden bg-white">
           {loading ? (
             <div className="p-4 text-muted-foreground">Loading...</div>
           ) : error ? (
             <div className="p-4 text-red-500">{error}</div>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="text-left p-3 font-medium">Date</th>
-                  <th className="text-right p-3 font-medium">Distance (km)</th>
-                  <th className="text-right p-3 font-medium">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.length === 0 ? (
-                  <tr><td colSpan={3} className="p-3 text-center text-muted-foreground">No trips found.</td></tr>
-                ) : history.map((h, idx) => (
-                  <tr key={idx} className="border-t border-border">
-                    <td className="p-3">{h.date}</td>
-                    <td className="p-3 text-right">{h.distanceKm.toFixed(1)}</td>
-                    <td className="p-3 text-right">₹ {h.amount}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[400px] text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left p-3 font-medium">Date</th>
+                    <th className="text-right p-3 font-medium">Distance (km)</th>
+                    <th className="text-right p-3 font-medium">Amount</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {history.length === 0 ? (
+                    <tr><td colSpan={3} className="p-3 text-center text-muted-foreground">No trips found.</td></tr>
+                  ) : history.map((h, idx) => (
+                    <tr key={idx} className="border-t border-border">
+                      <td className="p-3">{h.date}</td>
+                      <td className="p-3 text-right">{h.distanceKm.toFixed(1)}</td>
+                      <td className="p-3 text-right">₹ {h.amount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </section>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,10 +36,11 @@ const AddEmployeeDialog: React.FC<AddEmployeeDialogProps> = ({ open, onOpenChang
       onEmployeeAdded();
       onOpenChange(false);
       setFormData({ name: '', email: '', position: '', phone: '' });
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to add employee. Please try again.';
       toast({
         title: 'Error',
-        description: 'Failed to add employee. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -52,6 +53,9 @@ const AddEmployeeDialog: React.FC<AddEmployeeDialogProps> = ({ open, onOpenChang
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Employee</DialogTitle>
+          <DialogDescription>
+            Fill out the form below to add a new employee to the system. All fields are required.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">

@@ -8,6 +8,10 @@ export interface EmployeeGrade {
     other: number;
   };
   receiptRequired: boolean;
+  // Entitlement fields
+  vehicleType?: 'car' | '2-wheeler' | 'special';
+  fuelRule?: string; // e.g., '1 litre per 7 km', '1 litre per 25 km'
+  specialEntitlement?: boolean;
 }
 
 export interface Employee {
@@ -15,6 +19,7 @@ export interface Employee {
   email: string;
   name: string;
   grade: string;
+  designation?: string;
   phone: string;
   approvalChain: {
     L1: string; // Reporting Manager ID

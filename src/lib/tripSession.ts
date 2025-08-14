@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { Location } from "./mapboxService";
+import { calculateExpenseAmount } from "./expenseCalculator";
 
 // Trip session interfaces
 export interface TripSession {
@@ -128,19 +129,13 @@ export const endTripSession = async (
   try {
     const sessionRef = doc(db, "activeSessions", sessionId);
     const sessionDoc = await getDoc(sessionRef);
-    
     if (!sessionDoc.exists()) {
       return { error: "Trip session not found" };
     }
-
     const sessionData = sessionDoc.data() as TripSession;
-    const positionRate = POSITION_RATES[employeePosition];
-    
-    if (!positionRate) {
-      return { error: "Invalid employee position" };
-    }
 
-    const totalExpense = (totalDistance * positionRate.perKmRate) + positionRate.dailyAllowance;
+    // Use admin-configurable rate calculation (with fallback)
+    const totalExpense = await calculateExpenseAmount(totalDistance, employeePosition);
 
     // Update session as completed
     await updateDoc(sessionRef, {

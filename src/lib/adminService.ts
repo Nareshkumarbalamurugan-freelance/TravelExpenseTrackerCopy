@@ -15,6 +15,7 @@ import {
   Timestamp
 } from "firebase/firestore";
 import { EmployeePosition, TripSession } from "./tripSession";
+export type { EmployeePosition } from "./tripSession";
 
 // ...existing code...
 

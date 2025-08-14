@@ -1,22 +1,30 @@
-import { collection, doc, getDoc, getDocs, query, where, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { Employee, EmployeeGrade, ApprovalStatus } from '../types/employee';
 
 export const getEmployeeByIdOrEmail = async (identifier: string): Promise<Employee | null> => {
   try {
+    console.log('📋 EmployeeService: Looking up employee by identifier:', identifier);
+    
     // Check if identifier is email
     if (identifier.includes('@')) {
+      console.log('📧 EmployeeService: Identifier is email, querying by email');
       const q = query(collection(db, 'employees'), where('email', '==', identifier));
       const snapshot = await getDocs(q);
-      return snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Employee;
+      const result = snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Employee;
+      console.log('📊 EmployeeService: Email query result:', result ? `found (${result.name})` : 'not found');
+      return result;
     }
     
     // Check by employee ID
+    console.log('🆔 EmployeeService: Identifier is ID, querying by document ID');
     const docRef = doc(db, 'employees', identifier);
     const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as Employee : null;
+    const result = docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as Employee : null;
+    console.log('📊 EmployeeService: ID query result:', result ? `found (${result.name})` : 'not found');
+    return result;
   } catch (error) {
-    console.error('Error fetching employee:', error);
+    console.error('❌ EmployeeService: Error fetching employee:', error);
     return null;
   }
 };
@@ -100,5 +108,42 @@ export const getNextApprover = async (employeeId: string, currentLevel: string):
   } catch (error) {
     console.error('Error getting next approver:', error);
     return null;
+  }
+};
+
+// Create a new employee (HR only function)
+export const createEmployee = async (employeeData: Omit<Employee, 'id'> & { id: string }): Promise<{ success: boolean; error?: string }> => {
+  console.log('📋 EmployeeService: createEmployee called with data:', employeeData);
+  
+  try {
+    // Check if employee ID already exists
+    console.log('🔍 EmployeeService: Checking if employee ID exists:', employeeData.id);
+    const existingEmployee = await getEmployeeByIdOrEmail(employeeData.id);
+    if (existingEmployee) {
+      console.log('❌ EmployeeService: Employee ID already exists');
+      return { success: false, error: 'Employee ID already exists' };
+    }
+
+    // Check if email already exists
+    console.log('🔍 EmployeeService: Checking if email exists:', employeeData.email);
+    const existingEmailUser = await getEmployeeByIdOrEmail(employeeData.email);
+    if (existingEmailUser) {
+      console.log('❌ EmployeeService: Email already exists');
+      return { success: false, error: 'Email already exists' };
+    }
+
+    // Add to Firestore
+    console.log('💾 EmployeeService: Creating employee document...');
+    await setDoc(doc(db, 'employees', employeeData.id), {
+      ...employeeData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
+    console.log(`✅ EmployeeService: Employee created successfully: ${employeeData.name} (${employeeData.id})`);
+    return { success: true };
+  } catch (error: any) {
+    console.error('❌ EmployeeService: Error creating employee:', error);
+    return { success: false, error: error.message };
   }
 };
