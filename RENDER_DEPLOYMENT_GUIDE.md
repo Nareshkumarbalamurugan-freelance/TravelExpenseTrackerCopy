@@ -23,18 +23,20 @@ Branch: main
 #### **Build & Deploy Settings:**
 ```
 Runtime: Node
-Build Command: npm ci && npm run build
+Build Command: npm install --include=dev && npm run build
 Start Command: npm run serve
 ```
 
-#### **Alternative Build Command (if above fails):**
+#### **Alternative Build Commands:**
 ```
-Build Command: npm install && npm run build
+Option 1: npm install && npm run build
+Option 2: npm ci && npm run build
+Option 3: npm install --include=dev && npx vite build
 ```
 
 #### **Advanced Settings:**
 ```
-Node Version: 18.19.0 (specified in .node-version file)
+Node Version: 20.17.0 (specified in .node-version file)
 Auto-Deploy: Yes
 ```
 
@@ -128,28 +130,29 @@ firebase deploy --only firestore:rules
 
 ### **Common Issues:**
 
-#### **1. Build Fails - "vite: not found"**
-**Root Cause**: Render using Node.js 22 (default) instead of Node.js 18
+#### **1. Build Fails - "vite: not found" or "Cannot find package 'vite'"**
+**Root Cause**: Vite is in devDependencies but npm install skips dev dependencies in production
 
 **Solutions**:
-1. **Add .node-version file** (already included):
+1. **Use --include=dev flag** (recommended):
    ```
-   18.19.0
-   ```
-
-2. **Use npx in build command**:
-   ```
-   Build Command: npm install && npx vite build
+   Build Command: npm install --include=dev && npm run build
    ```
 
-3. **Alternative build command**:
+2. **Move vite to dependencies** (already done):
+   - Vite and @vitejs/plugin-react-swc moved to regular dependencies
+
+3. **Use Node 20.17.0** (already set):
    ```
-   Build Command: npm install && npm run build
+   20.17.0
    ```
 
-4. **Force Node 18 in Render dashboard**:
-   - Go to Environment → Add variable
-   - `NODE_VERSION=18.19.0`
+4. **Alternative build commands**:
+   ```
+   npm install && npm run build
+   npm ci && npm run build  
+   npm install --include=dev && npx vite build
+   ```
 
 #### **2. Build Fails - General Issues**
 - Check Node version (should be 18)

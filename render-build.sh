@@ -9,9 +9,9 @@ echo "🚀 Starting build process..."
 echo "📋 Node version: $(node --version)"
 echo "📋 NPM version: $(npm --version)"
 
-# Install dependencies
+# Install dependencies including dev dependencies
 echo "📦 Installing dependencies..."
-npm ci --only=production=false
+npm install --include=dev
 
 # Build the application
 echo "🏗️ Building application..."
