@@ -27,6 +27,13 @@ Build Command: npm install --include=dev && npm run build
 Start Command: npm run serve
 ```
 
+#### **Alternative Start Commands:**
+```
+Option 1: npm run serve (direct vite preview)
+Option 2: npm run serve-alt (uses render-start.js)
+Option 3: npx vite preview --host 0.0.0.0 --port $PORT
+```
+
 #### **Alternative Build Commands:**
 ```
 Option 1: npm install && npm run build
@@ -154,7 +161,26 @@ firebase deploy --only firestore:rules
    npm install --include=dev && npx vite build
    ```
 
-#### **2. Build Fails - General Issues**
+#### **2. Start Command Fails - "require is not defined in ES module scope"**
+**Root Cause**: render-start.js uses CommonJS syntax but package.json has "type": "module"
+
+**Solutions**:
+1. **Use direct vite preview** (recommended):
+   ```
+   Start Command: npm run serve
+   ```
+   This runs: `vite preview --host 0.0.0.0 --port $PORT`
+
+2. **Alternative start commands**:
+   ```
+   npx vite preview --host 0.0.0.0 --port $PORT
+   npm run serve-alt (uses updated render-start.js)
+   ```
+
+3. **Fixed render-start.js** (already updated):
+   - Now uses ES module syntax (import instead of require)
+
+#### **3. Build Fails - General Issues**
 - Check Node version (should be 18)
 - Verify all dependencies in package.json
 - Check build logs in Render dashboard
