@@ -7,8 +7,17 @@ services:
     env: node
     region: oregon  # or singapore for Asia
     plan: free  # upgrade to starter for custom domain
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install && npm run build
     startCommand: npm run serve
+    runtime: node
+    buildFilter:
+      paths:
+        - src/**
+        - public/**
+        - package.json
+        - vite.config.ts
+        - index.html
+        - .node-version
     envVars:
       - key: NODE_ENV
         value: production

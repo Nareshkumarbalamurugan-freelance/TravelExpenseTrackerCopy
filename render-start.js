@@ -13,7 +13,7 @@ const port = process.env.PORT || 10000;
 if (isProduction) {
   console.log('📦 Running production build server...');
   
-  // Use vite preview to serve the built dist folder
+  // Use npx vite preview to serve the built dist folder
   const viteProcess = spawn('npx', ['vite', 'preview', '--host', '0.0.0.0', '--port', port], {
     stdio: 'inherit',
     cwd: process.cwd()

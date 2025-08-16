@@ -15,7 +15,7 @@ npm ci --only=production=false
 
 # Build the application
 echo "🏗️ Building application..."
-npm run build
+npx vite build
 
 echo "✅ Build completed successfully!"
 

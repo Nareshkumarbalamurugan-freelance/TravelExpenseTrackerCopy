@@ -34,7 +34,7 @@ Build Command: npm install && npm run build
 
 #### **Advanced Settings:**
 ```
-Node Version: 18
+Node Version: 18.19.0 (specified in .node-version file)
 Auto-Deploy: Yes
 ```
 
@@ -129,14 +129,27 @@ firebase deploy --only firestore:rules
 ### **Common Issues:**
 
 #### **1. Build Fails - "vite: not found"**
-**Solution**: Update build command to install dependencies first:
-```
-Build Command: npm ci && npm run build
-```
-Or use:
-```
-Build Command: npm install && npm run build
-```
+**Root Cause**: Render using Node.js 22 (default) instead of Node.js 18
+
+**Solutions**:
+1. **Add .node-version file** (already included):
+   ```
+   18.19.0
+   ```
+
+2. **Use npx in build command**:
+   ```
+   Build Command: npm install && npx vite build
+   ```
+
+3. **Alternative build command**:
+   ```
+   Build Command: npm install && npm run build
+   ```
+
+4. **Force Node 18 in Render dashboard**:
+   - Go to Environment → Add variable
+   - `NODE_VERSION=18.19.0`
 
 #### **2. Build Fails - General Issues**
 - Check Node version (should be 18)
