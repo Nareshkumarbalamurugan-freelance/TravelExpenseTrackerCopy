@@ -23,8 +23,13 @@ Branch: main
 #### **Build & Deploy Settings:**
 ```
 Runtime: Node
-Build Command: npm run build
+Build Command: npm ci && npm run build
 Start Command: npm run serve
+```
+
+#### **Alternative Build Command (if above fails):**
+```
+Build Command: npm install && npm run build
 ```
 
 #### **Advanced Settings:**
@@ -123,7 +128,17 @@ firebase deploy --only firestore:rules
 
 ### **Common Issues:**
 
-#### **1. Build Fails**
+#### **1. Build Fails - "vite: not found"**
+**Solution**: Update build command to install dependencies first:
+```
+Build Command: npm ci && npm run build
+```
+Or use:
+```
+Build Command: npm install && npm run build
+```
+
+#### **2. Build Fails - General Issues**
 - Check Node version (should be 18)
 - Verify all dependencies in package.json
 - Check build logs in Render dashboard

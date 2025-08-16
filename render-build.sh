@@ -5,9 +5,13 @@ set -o errexit  # Exit on error
 
 echo "🚀 Starting build process..."
 
+# Check Node version
+echo "📋 Node version: $(node --version)"
+echo "📋 NPM version: $(npm --version)"
+
 # Install dependencies
 echo "📦 Installing dependencies..."
-npm ci
+npm ci --only=production=false
 
 # Build the application
 echo "🏗️ Building application..."
