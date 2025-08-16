@@ -180,7 +180,23 @@ firebase deploy --only firestore:rules
 3. **Fixed render-start.js** (already updated):
    - Now uses ES module syntax (import instead of require)
 
-#### **3. Build Fails - General Issues**
+#### **3. Host Not Allowed Error**
+**Error**: `Blocked request. This host is not allowed.`
+
+**Solution**: Update `vite.config.ts` to allow Render hosts (already fixed):
+```typescript
+preview: {
+  host: "0.0.0.0",
+  port: process.env.PORT ? parseInt(process.env.PORT) : 4173,
+  allowedHosts: [
+    "noveltech-expense-tracker.onrender.com",
+    "localhost",
+    "127.0.0.1"
+  ]
+}
+```
+
+#### **4. Build Fails - General Issues**
 - Check Node version (should be 18)
 - Verify all dependencies in package.json
 - Check build logs in Render dashboard
