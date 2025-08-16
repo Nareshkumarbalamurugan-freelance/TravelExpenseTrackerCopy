@@ -36,7 +36,7 @@ const Profile = () => {
   const { isAdmin } = useAdmin();
   const navigate = useNavigate();
 
-  const handleLogout = () => { logout(); navigate("/login"); };
+  const handleLogout = () => { logout(); navigate("/mobile-login"); };
 
   const onMouseDownRipple = (e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();

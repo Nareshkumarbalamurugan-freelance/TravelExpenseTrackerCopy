@@ -18,7 +18,7 @@ const PrivateAppLayout = () => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/mobile-login" state={{ from: location }} replace />;
   }
 
   return (

@@ -2,6 +2,212 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile App Specific Styles */
+@layer base {
+  /* Mobile safe areas for Android/iOS */
+  .safe-area-top {
+    height: env(safe-area-inset-top, 0px);
+    background-color: #1f2937; /* Dark header */
+  }
+  
+  .safe-area-bottom {
+    height: env(safe-area-inset-bottom, 0px);
+    background-color: #f9fafb; /* Light footer */
+  }
+
+  /* Mobile-first responsive design */
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    line-height: 1.5;
+    color: #374151;
+    background-color: #f9fafb;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Disable zoom on double-tap */
+  * {
+    touch-action: manipulation;
+  }
+
+  /* Mobile input styling */
+  input, textarea, select {
+    font-size: 16px; /* Prevents zoom on iOS */
+    -webkit-appearance: none;
+    border-radius: 8px;
+  }
+
+  /* Mobile button styling */
+  button {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
+
+@layer components {
+  /* Mobile-friendly container */
+  .mobile-container {
+    @apply max-w-full mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Mobile cards */
+  .mobile-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4;
+  }
+
+  /* Mobile form styling */
+  .mobile-form-group {
+    @apply mb-4;
+  }
+
+  .mobile-form-label {
+    @apply block text-sm font-medium text-gray-700 mb-2;
+  }
+
+  .mobile-form-input {
+    @apply w-full px-3 py-3 border border-gray-300 rounded-lg text-base 
+           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+           bg-white appearance-none;
+  }
+
+  .mobile-form-select {
+    @apply w-full px-3 py-3 border border-gray-300 rounded-lg text-base 
+           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+           bg-white appearance-none bg-no-repeat bg-right bg-[length:16px_16px]
+           bg-[url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")];
+  }
+
+  /* Mobile button styles */
+  .mobile-btn-primary {
+    @apply w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium text-base
+           hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+  }
+
+  .mobile-btn-secondary {
+    @apply w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium text-base
+           hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+  }
+
+  .mobile-btn-danger {
+    @apply w-full bg-red-600 text-white py-3 px-4 rounded-lg font-medium text-base
+           hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200;
+  }
+
+  /* Mobile navigation */
+  .mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50
+           safe-area-bottom;
+  }
+
+  .mobile-nav-item {
+    @apply flex-1 flex flex-col items-center justify-center py-2 px-1 text-xs
+           text-gray-600 hover:text-blue-600 transition-colors duration-200;
+  }
+
+  .mobile-nav-item.active {
+    @apply text-blue-600;
+  }
+
+  /* Mobile header */
+  .mobile-header {
+    @apply bg-white shadow-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between;
+  }
+
+  /* Mobile list items */
+  .mobile-list-item {
+    @apply bg-white border-b border-gray-100 p-4 flex items-center justify-between
+           active:bg-gray-50 transition-colors duration-150;
+  }
+
+  /* Mobile floating action button */
+  .mobile-fab {
+    @apply fixed bottom-20 right-4 w-14 h-14 bg-blue-600 text-white rounded-full
+           shadow-lg flex items-center justify-center text-xl font-bold
+           hover:bg-blue-700 transition-all duration-200 z-40;
+  }
+
+  /* Mobile status badges */
+  .mobile-status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .mobile-status-pending {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .mobile-status-approved {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .mobile-status-rejected {
+    @apply bg-red-100 text-red-800;
+  }
+
+  /* Mobile table alternatives */
+  .mobile-data-card {
+    @apply bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-3;
+  }
+
+  .mobile-data-row {
+    @apply flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0;
+  }
+
+  .mobile-data-label {
+    @apply text-sm font-medium text-gray-600;
+  }
+
+  .mobile-data-value {
+    @apply text-sm text-gray-900 font-medium;
+  }
+
+  /* Mobile spacing utilities */
+  .mobile-section {
+    @apply mb-6;
+  }
+
+  .mobile-section-title {
+    @apply text-lg font-semibold text-gray-900 mb-3;
+  }
+
+  /* Responsive grid for mobile */
+  .mobile-grid {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3;
+  }
+
+  /* Mobile modal/drawer */
+  .mobile-modal {
+    @apply fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center;
+  }
+
+  .mobile-modal-content {
+    @apply w-full max-w-lg bg-white rounded-t-xl sm:rounded-xl shadow-xl
+           transform transition-all duration-300 ease-out;
+  }
+
+  /* Loading states for mobile */
+  .mobile-loading {
+    @apply flex items-center justify-center py-8;
+  }
+
+  .mobile-spinner {
+    @apply w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin;
+  }
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

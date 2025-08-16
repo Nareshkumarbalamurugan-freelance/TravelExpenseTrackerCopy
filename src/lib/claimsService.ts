@@ -12,6 +12,7 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { updateMonthlyTravelData, validateMonthlyLimit } from './travelLimitService';
 
 // 📋 Claim Types
 export type ClaimType = 'travel' | 'accommodation' | 'food' | 'fuel' | 'other' | 'medical' | 'communication';
@@ -62,6 +63,7 @@ export interface CreateClaimData {
   employeeId: string;
   employeeName: string;
   employeeEmail: string;
+  grade?: string; // Add grade for travel limit tracking
   type: ClaimType;
   amount: number;
   description: string;
@@ -74,6 +76,8 @@ export interface CreateClaimData {
     L2?: string;
     L3?: string;
   };
+  hasDocument?: boolean;
+  documentName?: string;
 }
 
 export interface ClaimServiceResult {
@@ -87,6 +91,21 @@ export const createClaim = async (claimData: CreateClaimData): Promise<ClaimServ
   console.log('📋 ClaimsService: Creating new claim:', claimData);
   
   try {
+    // Validate monthly travel limit if grade is provided
+    if (claimData.grade) {
+      const limitValidation = await validateMonthlyLimit(
+        claimData.employeeId, 
+        claimData.grade, 
+        claimData.amount
+      );
+      
+      if (!limitValidation.isValid) {
+        console.log('⚠️ ClaimsService: Monthly limit validation failed:', limitValidation.warning);
+        // Note: We'll still allow the claim but log the warning
+        // In production, you might want to block or require special approval
+      }
+    }
+
     const claimDoc = {
       employeeId: claimData.employeeId,
       employeeName: claimData.employeeName,
@@ -103,11 +122,25 @@ export const createClaim = async (claimData: CreateClaimData): Promise<ClaimServ
       approvalChain: claimData.approvalChain,
       approvals: [],
       notes: claimData.notes || '',
-      rejectionReason: ''
+      rejectionReason: '',
+      hasDocument: claimData.hasDocument || false,
+      documentName: claimData.documentName || ''
     };
 
     const docRef = await addDoc(collection(db, 'claims'), claimDoc);
     console.log('✅ ClaimsService: Claim created successfully with ID:', docRef.id);
+
+    // Update monthly travel data tracking
+    if (claimData.grade) {
+      await updateMonthlyTravelData(
+        claimData.employeeId,
+        claimData.employeeName,
+        claimData.grade,
+        claimData.amount,
+        claimData.distance || 0,
+        claimData.type === 'fuel'
+      );
+    }
 
     return { 
       success: true, 
@@ -131,41 +164,52 @@ export const getClaimsForEmployee = async (employeeId: string): Promise<Claim[]>
   console.log('📋 ClaimsService: Getting claims for employee:', employeeId);
   
   try {
+    // First try simple query without orderBy to avoid index issues
     const claimsQuery = query(
       collection(db, 'claims'),
-      where('employeeId', '==', employeeId),
-      orderBy('submittedAt', 'desc')
+      where('employeeId', '==', employeeId)
     );
     
     const claimsSnapshot = await getDocs(claimsQuery);
     const claims: Claim[] = [];
     
+    console.log('📋 ClaimsService: Found', claimsSnapshot.size, 'documents in query');
+    
     claimsSnapshot.forEach((doc) => {
+      console.log('📋 ClaimsService: Processing document:', doc.id, doc.data());
       const data = doc.data();
-      claims.push({
-        id: doc.id,
-        employeeId: data.employeeId,
-        employeeName: data.employeeName,
-        employeeEmail: data.employeeEmail,
-        type: data.type,
-        amount: data.amount,
-        description: data.description,
-        date: data.date.toDate(),
-        location: data.location,
-        distance: data.distance,
-        status: data.status,
-        submittedAt: data.submittedAt.toDate(),
-        updatedAt: data.updatedAt.toDate(),
-        approvalChain: data.approvalChain || {},
-        approvals: data.approvals || [],
-        notes: data.notes,
-        rejectionReason: data.rejectionReason
-      });
+      
+      try {
+        claims.push({
+          id: doc.id,
+          employeeId: data.employeeId,
+          employeeName: data.employeeName,
+          employeeEmail: data.employeeEmail,
+          type: data.type,
+          amount: data.amount,
+          description: data.description,
+          date: data.date?.toDate ? data.date.toDate() : new Date(data.date),
+          location: data.location || '',
+          distance: data.distance || 0,
+          status: data.status,
+          submittedAt: data.submittedAt?.toDate ? data.submittedAt.toDate() : new Date(data.submittedAt),
+          updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt),
+          approvalChain: data.approvalChain || {},
+          approvals: data.approvals || [],
+          notes: data.notes || '',
+          rejectionReason: data.rejectionReason || ''
+        });
+      } catch (docError: any) {
+        console.error('💥 ClaimsService: Error processing document:', doc.id, docError);
+      }
     });
     
-    console.log('✅ ClaimsService: Found', claims.length, 'claims for employee');
+    // Sort manually by submittedAt (most recent first)
+    claims.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+    
+    console.log('✅ ClaimsService: Successfully processed', claims.length, 'claims for employee');
     return claims;
-  } catch (error) {
+  } catch (error: any) {
     console.error('💥 ClaimsService: Error getting employee claims:', error);
     return [];
   }
@@ -176,57 +220,81 @@ export const getPendingClaimsForManager = async (managerId: string, level: Appro
   console.log('📋 ClaimsService: Getting pending claims for manager:', managerId, 'at level:', level);
   
   try {
-    // Determine what status to look for based on manager level
-    let statusToFind: ClaimStatus;
-    switch (level) {
-      case 'L1':
-        statusToFind = 'pending_l1';
-        break;
-      case 'L2':
-        statusToFind = 'pending_l2';
-        break;
-      case 'L3':
-        statusToFind = 'pending_l3';
-        break;
-      default:
-        statusToFind = 'pending_l1';
-    }
-
-    // Query for claims with the appropriate status and manager in approval chain
-    const claimsQuery = query(
-      collection(db, 'claims'),
-      where('status', '==', statusToFind),
-      where(`approvalChain.${level}`, '==', managerId),
-      orderBy('submittedAt', 'desc')
-    );
-    
+    // Get ALL claims first, then filter - this avoids composite index issues
+    const claimsQuery = query(collection(db, 'claims'));
     const claimsSnapshot = await getDocs(claimsQuery);
     const claims: Claim[] = [];
     
+    console.log('📋 ClaimsService: Retrieved', claimsSnapshot.size, 'total claims to filter');
+    
     claimsSnapshot.forEach((doc) => {
       const data = doc.data();
-      claims.push({
-        id: doc.id,
-        employeeId: data.employeeId,
-        employeeName: data.employeeName,
-        employeeEmail: data.employeeEmail,
-        type: data.type,
-        amount: data.amount,
-        description: data.description,
-        date: data.date.toDate(),
-        location: data.location,
-        distance: data.distance,
+      
+      console.log('📋 ClaimsService: Checking claim', doc.id, {
         status: data.status,
-        submittedAt: data.submittedAt.toDate(),
-        updatedAt: data.updatedAt.toDate(),
-        approvalChain: data.approvalChain || {},
-        approvals: data.approvals || [],
-        notes: data.notes,
-        rejectionReason: data.rejectionReason
+        approvalChain: data.approvalChain,
+        assignedToLevel: data.approvalChain?.[level]
       });
+      
+      // Check if this claim needs approval at this level by this manager
+      const approvalChain = data.approvalChain || {};
+      const assignedManager = approvalChain[level];
+      const expectedStatus = `pending_${level.toLowerCase()}`;
+      
+      console.log('📋 ClaimsService: Filtering logic:', {
+        claimId: doc.id,
+        currentStatus: data.status,
+        expectedStatus,
+        assignedManager,
+        targetManager: managerId,
+        statusMatch: data.status === expectedStatus,
+        managerMatch: assignedManager === managerId
+      });
+      
+      if (data.status === expectedStatus && assignedManager === managerId) {
+        console.log('✅ ClaimsService: Claim', doc.id, 'matches - adding to results');
+        
+        try {
+          // Safely parse dates
+          const safeToDate = (dateValue: any): Date => {
+            if (!dateValue) return new Date();
+            if (dateValue instanceof Date) return dateValue;
+            if (typeof dateValue?.toDate === 'function') return dateValue.toDate();
+            if (typeof dateValue === 'string') return new Date(dateValue);
+            return new Date();
+          };
+
+          claims.push({
+            id: doc.id,
+            employeeId: data.employeeId,
+            employeeName: data.employeeName,
+            employeeEmail: data.employeeEmail,
+            type: data.type,
+            amount: data.amount,
+            description: data.description,
+            date: safeToDate(data.date),
+            location: data.location || '',
+            distance: data.distance || 0,
+            status: data.status,
+            submittedAt: safeToDate(data.submittedAt),
+            updatedAt: safeToDate(data.updatedAt),
+            approvalChain: data.approvalChain || {},
+            approvals: data.approvals || [],
+            notes: data.notes || '',
+            rejectionReason: data.rejectionReason || ''
+          });
+        } catch (docError: any) {
+          console.error('💥 ClaimsService: Error processing pending claim:', doc.id, docError);
+        }
+      } else {
+        console.log('❌ ClaimsService: Claim', doc.id, 'filtered out');
+      }
     });
     
-    console.log('✅ ClaimsService: Found', claims.length, 'pending claims for manager');
+    // Sort manually by submittedAt (most recent first)
+    claims.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+    
+    console.log('✅ ClaimsService: Found', claims.length, 'pending claims for manager', managerId, 'at level', level);
     return claims;
   } catch (error) {
     console.error('💥 ClaimsService: Error getting pending claims:', error);
@@ -266,32 +334,72 @@ export const approveClaim = async (
       comments: comments || ''
     };
 
-    // Determine next status
+    // Determine next status based on approval chain
     let newStatus: ClaimStatus;
+    const hasL2Approver = claimData.approvalChain?.L2;
+    const hasL3Approver = claimData.approvalChain?.L3;
+    
+    console.log('✅ ClaimsService: Approval chain analysis:', {
+      currentLevel: level,
+      hasL2Approver,
+      hasL3Approver,
+      approvalChain: claimData.approvalChain
+    });
+    
     switch (level) {
       case 'L1':
-        newStatus = claimData.approvalChain.L2 ? 'pending_l2' : 
-                   claimData.approvalChain.L3 ? 'pending_l3' : 'approved';
+        if (hasL2Approver) {
+          newStatus = 'pending_l2';
+          console.log('✅ ClaimsService: L1 approved, moving to L2 approval');
+        } else if (hasL3Approver) {
+          newStatus = 'pending_l3';
+          console.log('✅ ClaimsService: L1 approved, no L2, moving to L3 approval');
+        } else {
+          newStatus = 'approved';
+          console.log('✅ ClaimsService: L1 approved, no further approvers, fully approved');
+        }
         break;
       case 'L2':
-        newStatus = claimData.approvalChain.L3 ? 'pending_l3' : 'approved';
+        if (hasL3Approver) {
+          newStatus = 'pending_l3';
+          console.log('✅ ClaimsService: L2 approved, moving to L3 approval');
+        } else {
+          newStatus = 'approved';
+          console.log('✅ ClaimsService: L2 approved, no L3, fully approved');
+        }
         break;
       case 'L3':
         newStatus = 'approved';
+        console.log('✅ ClaimsService: L3 approved, fully approved');
         break;
       default:
         newStatus = 'approved';
+        console.log('✅ ClaimsService: Unknown level, defaulting to approved');
     }
 
-    // Update claim
-    await updateDoc(claimRef, {
+    console.log('✅ ClaimsService: Status transition:', claimData.status, '→', newStatus);
+
+    // Update claim with enhanced data
+    const updateData = {
       status: newStatus,
       approvals: [...(claimData.approvals || []), approval],
       updatedAt: Timestamp.now()
-    });
+    };
+    
+    console.log('✅ ClaimsService: Updating claim with data:', updateData);
+    await updateDoc(claimRef, updateData);
 
-    console.log('✅ ClaimsService: Claim approved, new status:', newStatus);
-    return { success: true, data: { newStatus } };
+    console.log('✅ ClaimsService: Claim approved successfully, new status:', newStatus);
+    return { 
+      success: true, 
+      data: { 
+        newStatus,
+        previousStatus: claimData.status,
+        approver: approverName,
+        level,
+        claimId
+      } 
+    };
 
   } catch (error: any) {
     console.error('💥 ClaimsService: Error approving claim:', error);
@@ -389,6 +497,36 @@ export const getAllClaims = async (): Promise<Claim[]> => {
   } catch (error) {
     console.error('💥 ClaimsService: Error getting all claims:', error);
     return [];
+  }
+};
+
+// 📝 Alias for getClaims function (for testing compatibility)
+export const getClaims = getClaimsForEmployee;
+
+// 🔄 Update claim status
+export const updateClaimStatus = async (
+  claimId: string, 
+  status: ClaimStatus, 
+  updatedBy: string,
+  notes?: string
+): Promise<boolean> => {
+  console.log(`🔄 ClaimsService: Updating claim ${claimId} status to ${status}`);
+  
+  try {
+    const claimRef = doc(db, 'claims', claimId);
+    
+    await updateDoc(claimRef, {
+      status,
+      updatedAt: Timestamp.now(),
+      notes: notes || '',
+      [`updatedBy_${status}`]: updatedBy
+    });
+    
+    console.log('✅ ClaimsService: Claim status updated successfully');
+    return true;
+  } catch (error) {
+    console.error('💥 ClaimsService: Error updating claim status:', error);
+    return false;
   }
 };
 

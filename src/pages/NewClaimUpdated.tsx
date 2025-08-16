@@ -105,6 +105,7 @@ const NewClaim = () => {
         employeeId: employee.employeeId,
         employeeName: employee.name,
         employeeEmail: employee.email,
+        grade: employee.grade, // Add grade for travel limit tracking
         type: claimType,
         amount: amountValue,
         description: description.trim(),

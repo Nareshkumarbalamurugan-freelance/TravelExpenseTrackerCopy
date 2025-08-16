@@ -158,8 +158,8 @@ export const getEmployeeByIdOrEmail = async (identifier: string): Promise<Employ
   console.log('🔍 UnifiedEmployeeService: getEmployeeByIdOrEmail called with:', identifier);
   
   try {
-    // First try by employee ID
-    console.log('🔍 UnifiedEmployeeService: Searching by employee ID...');
+    // First try by employee ID in employees collection
+    console.log('🔍 UnifiedEmployeeService: Searching by employee ID in employees collection...');
     const employeeIdQuery = query(
       collection(db, 'employees'), 
       where('employeeId', '==', identifier)
@@ -169,7 +169,7 @@ export const getEmployeeByIdOrEmail = async (identifier: string): Promise<Employ
     if (!employeeIdSnapshot.empty) {
       const doc = employeeIdSnapshot.docs[0];
       const data = doc.data();
-      console.log('✅ UnifiedEmployeeService: Found employee by ID:', data);
+      console.log('✅ UnifiedEmployeeService: Found employee by ID in employees collection:', data);
       return {
         id: doc.id,
         employeeId: data.employeeId,
@@ -186,8 +186,8 @@ export const getEmployeeByIdOrEmail = async (identifier: string): Promise<Employ
       };
     }
 
-    // Then try by email
-    console.log('🔍 UnifiedEmployeeService: Searching by email...');
+    // Then try by email in employees collection
+    console.log('🔍 UnifiedEmployeeService: Searching by email in employees collection...');
     const emailQuery = query(
       collection(db, 'employees'), 
       where('email', '==', identifier)
@@ -197,7 +197,7 @@ export const getEmployeeByIdOrEmail = async (identifier: string): Promise<Employ
     if (!emailSnapshot.empty) {
       const doc = emailSnapshot.docs[0];
       const data = doc.data();
-      console.log('✅ UnifiedEmployeeService: Found employee by email:', data);
+      console.log('✅ UnifiedEmployeeService: Found employee by email in employees collection:', data);
       return {
         id: doc.id,
         employeeId: data.employeeId,
@@ -209,6 +209,62 @@ export const getEmployeeByIdOrEmail = async (identifier: string): Promise<Employ
         department: data.department,
         approvalChain: data.approvalChain || {},
         active: data.active ?? true,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date()
+      };
+    }
+
+    // Try in users collection by employee ID
+    console.log('🔍 UnifiedEmployeeService: Searching by employee ID in users collection...');
+    const usersIdQuery = query(
+      collection(db, 'users'), 
+      where('employeeId', '==', identifier)
+    );
+    const usersIdSnapshot = await getDocs(usersIdQuery);
+    
+    if (!usersIdSnapshot.empty) {
+      const doc = usersIdSnapshot.docs[0];
+      const data = doc.data();
+      console.log('✅ UnifiedEmployeeService: Found employee by ID in users collection:', data);
+      return {
+        id: doc.id,
+        employeeId: data.employeeId,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        grade: data.grade,
+        designation: data.position || data.designation,
+        department: data.department,
+        approvalChain: data.approvalChain || {},
+        active: data.isActive ?? data.active ?? true,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date()
+      };
+    }
+
+    // Finally try in users collection by email
+    console.log('🔍 UnifiedEmployeeService: Searching by email in users collection...');
+    const usersEmailQuery = query(
+      collection(db, 'users'), 
+      where('email', '==', identifier)
+    );
+    const usersEmailSnapshot = await getDocs(usersEmailQuery);
+    
+    if (!usersEmailSnapshot.empty) {
+      const doc = usersEmailSnapshot.docs[0];
+      const data = doc.data();
+      console.log('✅ UnifiedEmployeeService: Found employee by email in users collection:', data);
+      return {
+        id: doc.id,
+        employeeId: data.employeeId,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        grade: data.grade,
+        designation: data.position || data.designation,
+        department: data.department,
+        approvalChain: data.approvalChain || {},
+        active: data.isActive ?? data.active ?? true,
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date()
       };
@@ -299,11 +355,24 @@ export const getAllEmployees = async (): Promise<Employee[]> => {
   console.log('📋 UnifiedEmployeeService: getAllEmployees called');
   
   try {
-    const employeesSnapshot = await getDocs(collection(db, 'employees'));
     const employees: Employee[] = [];
+    
+    // First get employees from 'employees' collection
+    console.log('🔍 UnifiedEmployeeService: Fetching from employees collection...');
+    const employeesSnapshot = await getDocs(collection(db, 'employees'));
     
     employeesSnapshot.forEach((doc) => {
       const data = doc.data();
+      
+      // Helper function to safely convert dates
+      const safeToDate = (dateValue: any): Date => {
+        if (!dateValue) return new Date();
+        if (dateValue instanceof Date) return dateValue;
+        if (typeof dateValue?.toDate === 'function') return dateValue.toDate();
+        if (typeof dateValue === 'string') return new Date(dateValue);
+        return new Date();
+      };
+      
       employees.push({
         id: doc.id,
         employeeId: data.employeeId,
@@ -315,12 +384,49 @@ export const getAllEmployees = async (): Promise<Employee[]> => {
         department: data.department,
         approvalChain: data.approvalChain || {},
         active: data.active ?? true,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date()
+        createdAt: safeToDate(data.createdAt),
+        updatedAt: safeToDate(data.updatedAt)
       });
     });
     
-    console.log('✅ UnifiedEmployeeService: Found', employees.length, 'employees');
+    // Then get employees from 'users' collection
+    console.log('🔍 UnifiedEmployeeService: Fetching from users collection...');
+    const usersSnapshot = await getDocs(collection(db, 'users'));
+    
+    usersSnapshot.forEach((doc) => {
+      const data = doc.data();
+      
+      // Check if this user is already in the employees array (to avoid duplicates)
+      const existingEmployee = employees.find(emp => emp.email === data.email || emp.employeeId === data.employeeId);
+      
+      if (!existingEmployee) {
+        // Helper function to safely convert dates
+        const safeToDate = (dateValue: any): Date => {
+          if (!dateValue) return new Date();
+          if (dateValue instanceof Date) return dateValue;
+          if (typeof dateValue?.toDate === 'function') return dateValue.toDate();
+          if (typeof dateValue === 'string') return new Date(dateValue);
+          return new Date();
+        };
+        
+        employees.push({
+          id: doc.id,
+          employeeId: data.employeeId,
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          grade: data.grade,
+          designation: data.position || data.designation,
+          department: data.department,
+          approvalChain: data.approvalChain || {},
+          active: data.isActive ?? data.active ?? true,
+          createdAt: safeToDate(data.createdAt),
+          updatedAt: safeToDate(data.updatedAt)
+        });
+      }
+    });
+    
+    console.log('✅ UnifiedEmployeeService: Found', employees.length, 'employees total');
     return employees;
   } catch (error) {
     console.error('💥 UnifiedEmployeeService: Error in getAllEmployees:', error);

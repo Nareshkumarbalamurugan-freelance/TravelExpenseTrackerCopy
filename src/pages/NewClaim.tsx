@@ -161,6 +161,7 @@ const NewClaim = () => {
         employeeId: employee.employeeId,
         employeeName: employee.name,
         employeeEmail: employee.email,
+        grade: employee.grade, // Add grade for travel limit tracking
         type: claimType,
         amount: amountValue,
         description: description.trim(),
@@ -506,10 +507,10 @@ const NewClaim = () => {
                   </div>
                 )}
 
-                {/* N.VELTEC Travel Policy Information */}
+                {/* Noveltech Travel Policy Information */}
                 {policyInfo && vehicleInfo && (
                   <div className="bg-green-50 p-4 rounded-lg">
-                    <h3 className="font-medium text-green-900 mb-2">N.VELTEC Travel Policy - Grade: {employee.grade}</h3>
+                    <h3 className="font-medium text-green-900 mb-2">Noveltech Travel Policy - Grade: {employee.grade}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-green-700">
                       <div>
                         <strong>Daily Allowances:</strong>

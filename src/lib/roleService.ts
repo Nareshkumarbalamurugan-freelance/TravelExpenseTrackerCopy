@@ -79,24 +79,10 @@ export const getUserRole = async (employeeEmail: string): Promise<UserRole> => {
     if (isManagerByGrade || isManagerByKeyword) {
       console.log('👔 RoleService: Manager detected by grade/designation/keyword');
       
-      // Determine manager level based on grade
-      let managerLevel: 'L1' | 'L2' | 'L3' = 'L1';
-      if (currentEmployee.grade.toLowerCase().includes('senior') || 
-          currentEmployee.designation?.toLowerCase().includes('l3')) {
-        managerLevel = 'L3';
-      } else if (currentEmployee.designation?.toLowerCase().includes('l2')) {
-        managerLevel = 'L2';
-      }
-      
-      return {
-        type: 'manager',
-        level: managerLevel,
-        managedEmployees: [], // Will be populated when employees are added
-        employee: currentEmployee
-      };
+      // DON'T return early - we need to check approval chains for managed employees
     }
 
-    // Second check: Is this employee referenced as a manager in other employees' approval chains?
+    // Always check: Is this employee referenced as a manager in other employees' approval chains?
     const managedEmployees: string[] = [];
     let managerLevel: 'L1' | 'L2' | 'L3' | undefined;
 
@@ -116,13 +102,26 @@ export const getUserRole = async (employeeEmail: string): Promise<UserRole> => {
       }
     }
 
-    // Determine role based on management responsibilities
-    if (managedEmployees.length > 0) {
+    // Determine if this is a manager (either by grade/designation OR by having managed employees)
+    if ((isManagerByGrade || isManagerByKeyword) || managedEmployees.length > 0) {
       console.log('👔 RoleService: Manager detected!', {
         level: managerLevel,
         managedEmployees: managedEmployees.length,
-        employee: currentEmployee.name
+        employee: currentEmployee.name,
+        detectedBy: (isManagerByGrade || isManagerByKeyword) ? 'grade/designation' : 'approval_chain'
       });
+      
+      // If no level found from approval chains, use grade-based level
+      if (!managerLevel) {
+        if (currentEmployee.grade.toLowerCase().includes('senior') || 
+            currentEmployee.designation?.toLowerCase().includes('l3')) {
+          managerLevel = 'L3';
+        } else if (currentEmployee.designation?.toLowerCase().includes('l2')) {
+          managerLevel = 'L2';
+        } else {
+          managerLevel = 'L1';
+        }
+      }
       
       return {
         type: 'manager',

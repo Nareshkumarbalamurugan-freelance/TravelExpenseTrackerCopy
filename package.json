@@ -8,7 +8,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview --host 0.0.0.0 --port 10000",
-    "start": "vite preview --host 0.0.0.0 --port 10000"
+    "start": "vite preview --host 0.0.0.0 --port 10000",
+    "test:all": "node test-all-features.js",
+    "test:report": "node test-all-features.js && cat test-report.json"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

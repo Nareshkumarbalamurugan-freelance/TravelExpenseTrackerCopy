@@ -1,22 +1,21 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import SEO from "@/components/SEO";
 
 const LoginSelector = () => {
   const navigate = useNavigate();
+  
+  // Redirect to mobile login immediately
+  useEffect(() => {
+    navigate('/mobile-login');
+  }, [navigate]);
+
   return (
-    <>
-      <SEO title="Login - Select Role" description="Choose Employee or Manager login." />
-      <div className="min-h-screen flex flex-col items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white rounded shadow p-8 flex flex-col gap-6 items-center">
-          <div className="text-2xl font-bold mb-2">Noveltech Feeds</div>
-          <div className="text-lg mb-4">Employee Travel Expense Tracker</div>
-          <Button className="w-full mb-2" onClick={() => navigate("/login-employee")}>Employee Login</Button>
-          <Button className="w-full" variant="outline" onClick={() => navigate("/login-manager")}>Manager Login</Button>
-        </div>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Redirecting to login...</p>
       </div>
-    </>
+    </div>
   );
 };
 

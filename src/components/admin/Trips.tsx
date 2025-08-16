@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { getAdminStats, AdminStats } from '@/lib/adminService';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from '@/components/ui/button';
 import { MoreVertical } from 'lucide-react';
@@ -40,6 +41,51 @@ const TripRow = ({ trip }: { trip: TripSession }) => (
   </TableRow>
 );
 
+const TripCard = ({ trip }: { trip: TripSession }) => (
+  <Card>
+    <CardContent className="p-4">
+      <div className="space-y-3">
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="font-medium text-sm">Employee: {trip.userId}</h3>
+            <Badge variant={trip.status === 'completed' ? 'default' : 'secondary'} className="text-xs mt-1">
+              {trip.status}
+            </Badge>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem>View Details</DropdownMenuItem>
+              <DropdownMenuItem>Approve</DropdownMenuItem>
+              <DropdownMenuItem className="text-red-600">Reject</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        
+        <div className="space-y-1">
+          <p className="text-xs"><span className="font-medium">Started:</span> {new Date(trip.startTime).toLocaleString()}</p>
+          <p className="text-xs"><span className="font-medium">Ended:</span> {trip.endTime ? new Date(trip.endTime).toLocaleString() : 'Ongoing'}</p>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2 text-center pt-2 border-t">
+          <div>
+            <p className="text-xs font-medium">Distance</p>
+            <p className="text-xs text-gray-600">{trip.totalDistance?.toFixed(2)} km</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium">Expense</p>
+            <p className="text-xs text-gray-600">₹{trip.totalExpense?.toLocaleString('en-IN')}</p>
+          </div>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
 const Trips = () => {
   const [trips, setTrips] = useState<TripSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,10 +119,39 @@ const Trips = () => {
 
   return (
     <div className="bg-white rounded-lg shadow">
-      <div className="p-4 border-b flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Recent Trips</h2>
+      <div className="p-3 md:p-4 border-b">
+        <h2 className="text-base md:text-lg font-semibold">Recent Trips</h2>
       </div>
-      <div className="overflow-x-auto">
+      
+      {/* Mobile Card Layout */}
+      <div className="md:hidden p-3">
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-4">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-3 w-2/3" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : trips.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p className="text-sm">No trips found.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {trips.map(trip => <TripCard key={trip.id} trip={trip} />)}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table Layout */}
+      <div className="hidden md:block overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

@@ -1,4 +1,4 @@
-// 🏢 N.VELTEC Travel Policy Implementation - Updated with HR Requirements
+// 🏢 Noveltech Travel Policy Implementation - Updated with HR Requirements
 // Based on: Domestic Sales Travel Policy 2022–2024 + HR Feedback (Aug 2025)
 // Doc. No.: TF / PL 01 HR 01 | Issue Date: 01-12-2022
 
@@ -423,4 +423,41 @@ export const POLICY_RULES = {
     'Monthly tonnage sales achieved for claimed period',
     'Farm Tracking Report (must be submitted with travel claim)'
   ]
+};
+
+// Export the grade policy for testing
+export const GRADE_POLICY = TRAVEL_POLICY;
+
+// Utility function to get policy information for a grade
+export const getPolicyInfo = (grade: string): TravelEntitlement | null => {
+  return TRAVEL_POLICY[grade] || null;
+};
+
+// Calculate fuel allowance based on grade and distance
+export const calculateFuelAllowance = (grade: string, distanceKm: number): number => {
+  const policy = TRAVEL_POLICY[grade];
+  if (!policy) return 0;
+
+  const vehicle = getVehicleEntitlement(grade);
+  
+  if (vehicle === 'car') {
+    return distanceKm / FUEL_RULES.car.kmPerLiter;
+  } else if (vehicle === '2wheeler') {
+    return distanceKm / FUEL_RULES['2wheeler'].kmPerLiter;
+  }
+  
+  return 0; // Actual basis or no entitlement
+};
+
+// Get vehicle entitlement based on grade
+export const getVehicleEntitlement = (grade: string): 'car' | '2wheeler' | 'actual' => {
+  if (FUEL_RULES.car.eligibleGrades.includes(grade)) {
+    return 'car';
+  } else if (FUEL_RULES['2wheeler'].eligibleGrades.includes(grade)) {
+    return '2wheeler';
+  } else if (FUEL_RULES.actual.eligibleGrades.includes(grade)) {
+    return 'actual';
+  }
+  
+  return '2wheeler'; // Default fallback
 };

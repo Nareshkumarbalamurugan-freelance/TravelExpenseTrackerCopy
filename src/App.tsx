@@ -13,7 +13,20 @@ import SmartDashboardRouter from "./pages/SmartDashboardRouter";
 import NotFound from "./pages/NotFound";
 import TestPage from "./pages/TestPage";
 import TestSystemPage from "./pages/TestSystemPage";
+import ComprehensiveTestPage from "./pages/ComprehensiveTestPage";
+import RealDataTestPage from "./pages/RealDataTestPage";
+import FullSystemTest from "./pages/FullSystemTest";
+import TestUsersSetup from "./pages/TestUsersSetup";
+import CreateTestClaims from "./pages/CreateTestClaims";
+import UserCleanup from "./pages/UserCleanup";
+import FixApprovalChains from "./pages/FixApprovalChains";
+import DebugClaims from "./pages/DebugClaims";
+import DebugManagerRole from "./pages/DebugManagerRole";
+import MobileSmartDashboardRouter from "./pages/MobileSmartDashboardRouter";
 import Login from "./pages/Login";
+import MobileLogin from "./pages/MobileLogin";
+import MobileNewClaim from "./pages/MobileNewClaim";
+import MobileDashboard from "./pages/MobileDashboard";
 import LoginSelector from "./pages/LoginSelector";
 import LoginEmployee from "./pages/LoginEmployee";
 import LoginManager from "./pages/LoginManager";
@@ -54,8 +67,10 @@ const App = () => (
                   }}
                 >
                   <Routes>
-                    <Route path="/" element={<LoginSelector />} />
-                  <Route path="/login" element={<LoginSelector />} />
+                    <Route path="/" element={<MobileLogin />} />
+                  <Route path="/login" element={<MobileLogin />} />
+                  <Route path="/mobile-login" element={<MobileLogin />} />
+                  <Route path="/login-selector" element={<LoginSelector />} />
                   <Route path="/login-employee" element={<LoginEmployee />} />
                   <Route path="/login-manager" element={<LoginManager />} />
                   <Route path="/admin-setup" element={<AdminSetupPage />} />
@@ -73,11 +88,13 @@ const App = () => (
                   <Route path="/" element={<PrivateAppLayout />}>
                     <Route index element={<SmartDashboardRouter />} />
                     <Route path="dashboard" element={<SmartDashboardRouter />} />
+                    <Route path="mobile-dashboard" element={<MobileSmartDashboardRouter />} />
                     <Route path="employee-dashboard" element={<NewEmployeeDashboard />} />
                     <Route path="manager-dashboard" element={<ManagerDashboard />} />
                     <Route path="trips" element={<Trips />} />
                     <Route path="claims" element={<Claims />} />
                     <Route path="new-claim" element={<NewClaim />} />
+                    <Route path="mobile-new-claim" element={<MobileNewClaim />} />
                     <Route path="dashboard-legacy" element={<Dashboard />} />
                     <Route path="claim-approvals" element={<ClaimApprovals />} />
                     <Route path="summary" element={<DailySummary />} />
@@ -87,6 +104,15 @@ const App = () => (
                   </Route>
                   <Route path="test" element={<TestPage />} />
                   <Route path="test-system" element={<TestSystemPage />} />
+                  <Route path="test-comprehensive" element={<ComprehensiveTestPage />} />
+                  <Route path="test-real" element={<RealDataTestPage />} />
+                  <Route path="test-full" element={<FullSystemTest />} />
+                  <Route path="setup-users" element={<TestUsersSetup />} />
+                  <Route path="create-claims" element={<CreateTestClaims />} />
+                  <Route path="cleanup-users" element={<UserCleanup />} />
+                  <Route path="fix-approval-chains" element={<FixApprovalChains />} />
+                  <Route path="debug-claims" element={<DebugClaims />} />
+                  <Route path="debug-manager" element={<DebugManagerRole />} />
                   <Route path="debug-role" element={<RoleDebugger />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

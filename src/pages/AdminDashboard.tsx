@@ -1,17 +1,23 @@
 
 import React, { useState, useEffect } from 'react';
-import { Menu, Users, TrendingUp, Route, DollarSign, Settings, Shield, X } from 'lucide-react';
+import { Menu, Users, TrendingUp, Route, DollarSign, Settings, Shield, X, UserCheck, BarChart3, CheckSquare } from 'lucide-react';
 import SEO from '@/components/SEO';
 import Overview from '@/components/admin/Overview';
 import Employees from '@/components/admin/Employees';
 import Trips from '@/components/admin/Trips';
 import Approvals from '@/components/admin/Approvals';
 import AdminSettings from '@/components/admin/Settings';
+import ManagerAssignment from '@/components/admin/ManagerAssignment';
+import MonthlyTravelDashboard from '@/components/admin/MonthlyTravelDashboard';
+import PolicyComplianceChecker from '@/components/admin/PolicyComplianceChecker';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
   { key: 'overview', label: 'Overview', icon: <TrendingUp className="h-5 w-5" /> },
   { key: 'employees', label: 'Employees', icon: <Users className="h-5 w-5" /> },
+  { key: 'managers', label: 'Manager Assignment', icon: <UserCheck className="h-5 w-5" /> },
+  { key: 'travel-limits', label: 'Travel Limits', icon: <BarChart3 className="h-5 w-5" /> },
+  { key: 'policy-checker', label: 'Policy Checker', icon: <CheckSquare className="h-5 w-5" /> },
   { key: 'trips', label: 'Trips', icon: <Route className="h-5 w-5" /> },
   { key: 'approvals', label: 'Approvals', icon: <Shield className="h-5 w-5" /> },
   { key: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" /> },
@@ -27,6 +33,12 @@ const AdminDashboard = () => {
         return <Overview />;
       case 'employees':
         return <Employees />;
+      case 'managers':
+        return <ManagerAssignment />;
+      case 'travel-limits':
+        return <MonthlyTravelDashboard />;
+      case 'policy-checker':
+        return <PolicyComplianceChecker />;
       case 'trips':
         return <Trips />;
       case 'approvals':
