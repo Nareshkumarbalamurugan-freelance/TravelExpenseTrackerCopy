@@ -24,14 +24,15 @@ Branch: main
 ```
 Runtime: Node
 Build Command: npm install --include=dev && npm run build
-Start Command: npm run serve
+Start Command: npm run serve-safe
 ```
 
 #### **Alternative Start Commands:**
 ```
-Option 1: npm run serve (direct vite preview)
-Option 2: npm run serve-alt (uses render-start.js)
-Option 3: npx vite preview --host 0.0.0.0 --port $PORT
+Option 1: npm run serve-safe (vite preview with --allowed-hosts all)
+Option 2: npm run serve (direct vite preview)
+Option 3: npm run serve-alt (uses render-start.js)
+Option 4: npx vite preview --host 0.0.0.0 --port $PORT --allowed-hosts all
 ```
 
 #### **Alternative Build Commands:**
@@ -183,17 +184,28 @@ firebase deploy --only firestore:rules
 #### **3. Host Not Allowed Error**
 **Error**: `Blocked request. This host is not allowed.`
 
-**Solution**: Update `vite.config.ts` to allow Render hosts (already fixed):
-```typescript
-preview: {
-  host: "0.0.0.0",
-  port: process.env.PORT ? parseInt(process.env.PORT) : 4173,
-  allowedHosts: [
-    "noveltech-expense-tracker.onrender.com",
-    "localhost",
-    "127.0.0.1"
-  ]
-}
+**Solutions Applied**:
+1. **Updated vite.config.ts** to allow all hosts:
+   ```typescript
+   preview: {
+     host: "0.0.0.0",
+     port: process.env.PORT ? parseInt(process.env.PORT) : 4173,
+     allowedHosts: true // Allow all hosts
+   }
+   ```
+
+2. **Added serve-safe script** with explicit host allowance:
+   ```json
+   "serve-safe": "vite preview --host 0.0.0.0 --port $PORT --allowed-hosts all"
+   ```
+
+3. **Updated Render start command** to use `npm run serve-safe`
+
+**If still blocked, try these start commands in Render**:
+```
+npm run serve-safe
+npx vite preview --host 0.0.0.0 --port $PORT --allowed-hosts all
+vite preview --host 0.0.0.0 --port $PORT --allowed-hosts all
 ```
 
 #### **4. Build Fails - General Issues**

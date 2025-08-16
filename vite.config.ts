@@ -8,12 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "0.0.0.0",
     port: 10000,
-    allowedHosts: [
-      "travelexpensetracker.onrender.com",
-      "noveltech-expense-tracker.onrender.com",
-      "localhost",
-      "127.0.0.1"
-    ],
+    allowedHosts: true, // Allow all hosts for development and production
     proxy: {
       '/api/mappls/api': {
         target: 'https://atlas.mappls.com',
@@ -38,12 +33,7 @@ export default defineConfig(({ mode }) => ({
   preview: {
     host: "0.0.0.0",
     port: process.env.PORT ? parseInt(process.env.PORT) : 4173,
-    allowedHosts: [
-      "travelexpensetracker.onrender.com",
-      "noveltech-expense-tracker.onrender.com",
-      "localhost",
-      "127.0.0.1"
-    ]
+    allowedHosts: true // Allow all hosts for production deployment
   },
   build: {
     outDir: 'dist',
